@@ -70,7 +70,7 @@ body.clean #wrap{padding:0}
   <div class="btns"><button id="bAgain">다시 쉬러 가기</button><button id="bWork" class="work">이제 일하러 가기</button></div>
   <p class="bye" id="bye">오늘도 잘 쉬었어요. 이 창은 닫아도 돼요.</p>
 </div></div>
-<div id="hint"><b>클릭</b>해서 던지기 · <b>드래그</b>로 둘러보기 · <b>휠</b>로 망원경 · <b>스페이스</b>로 휘파람</div>
+<div id="hint"><b>클릭</b>해서 던지기 · <b>드래그</b>로 둘러보기 · <b>마우스 휠</b>을 돌리면 클로즈업돼요 · <b>스페이스</b>로 휘파람</div>
 <script>
 'use strict';
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
@@ -339,7 +339,7 @@ function throwAt(tx, tz) {
   dog.state = 'wait'; dog.t = 0; dog.crabDone = false;
   dog.willCrab = tz > crab.z + 0.8 && Math.random() < 0.8;
   bark(dog.z);
-  if (!thrown) { thrown = true; setHint(''); }
+  if (!thrown) { thrown = true; setHint(zoomT > 1.2 ? '' : '<b>마우스 휠</b>을 돌리면 강아지가 클로즈업돼요', 4500); }
 }
 function landBall() {
   if (isWater(ball.x, ball.z)) { toWater(); return; }
