@@ -527,10 +527,11 @@ function shadow(x, z, r) {
 // 새 강아지 그림 (애니메이션풍, 오른쪽을 보는 옆모습 + 앞모습 + 뒷모습)
 const DOG_NAMES = ['side_sit', 'side_stand', 'side_run1', 'side_run2', 'side_bow', 'side_sleep', 'side_swim', 'side_jump', 'front_run1', 'front_run2', 'front_sit', 'front_ball', 'back_run1', 'back_run2', 'back_sit', 'back_stand'];
 const DOGIMG = {};
-DOG_NAMES.forEach(n => { const i = new Image(); i.src = 'dog/' + n + '.png'; DOGIMG[n] = i; });
+const DOG_DIR = 'dog_retriever/'; // 하얀 강아지는 'dog/'
+DOG_NAMES.forEach(n => { const i = new Image(); i.src = DOG_DIR + n + '.png'; DOGIMG[n] = i; });
 const DOG_H = 0.8, DOG_REF = 142; // side_stand 그림 높이(142px)를 강아지 키 0.8로 봄
 // 공을 물었을 때 입 위치 (그림 너비·높이 비율, 오른쪽을 보는 기준)
-const MOUTH2 = { side_run1: [0.93, 0.42], side_run2: [0.95, 0.38], side_stand: [0.95, 0.4], side_jump: [0.86, 0.13], side_bow: [0.95, 0.62], side_swim: [0.97, 0.55], front_run1: [0.5, 0.4], front_run2: [0.5, 0.42], front_sit: [0.5, 0.36] };
+const MOUTH2 = { side_run1: [0.95, 0.33], side_run2: [0.95, 0.33], side_stand: [0.95, 0.24], side_sit: [0.92, 0.2], side_jump: [0.9, 0.12], side_bow: [0.95, 0.58], side_swim: [0.96, 0.35], front_run1: [0.5, 0.36], front_run2: [0.5, 0.36], front_sit: [0.5, 0.32] };
 function dogKey() {
   const run = Math.floor(dog.anim * 7) % 2 ? 2 : 1, sw = isWater(dog.x, dog.z) && dog.y < 0.01;
   switch (dog.state) {
