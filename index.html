@@ -60,6 +60,7 @@ body.clean #wrap{padding:0}
   <button id="bFollow" class="on">강아지 따라보기 (F)</button>
   <button id="bMute">소리 켜짐</button>
   <button id="bClean">전체화면 (H)</button>
+  <button id="bLang">English</button>
   <button id="bEnd">그만 쉬기 (Esc)</button>
 </div>
 </div>
@@ -74,6 +75,22 @@ body.clean #wrap{padding:0}
 <div id="hint"><b>클릭</b>해서 던지기 · <b>드래그</b>로 둘러보기 · <b>마우스 휠</b>을 돌리면 클로즈업돼요 · <b>스페이스</b>로 휘파람</div>
 <script>
 'use strict';
+// 언어: 주소 끝 ?lang=en / ?lang=ko, 없으면 브라우저 언어로
+const LANG = new URLSearchParams(location.search).get('lang') || (navigator.language.startsWith('ko') ? 'ko' : 'en');
+const T = (ko, en) => LANG === 'en' ? en : ko;
+if (LANG === 'en') {
+  document.documentElement.lang = 'en'; document.title = 'Dog Beyond the Telescope';
+  const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+  [['bBook', 'Open book (B)'], ['bFire', 'Light fire (C)'], ['bMagic', 'Color powder (V)'], ['bRadio', 'Music on (R)'], ['bBall', 'Ball (1)'], ['bDisc', 'Frisbee (2)'],
+   ['bWhistle', 'Whistle (Space)'], ['bZin', 'Telescope +'], ['bZout', 'Telescope −'], ['bFollow', 'Follow dog (F)'], ['bMute', 'Sound on'], ['bClean', 'Fullscreen (H)'],
+   ['bEnd', 'Stop resting (Esc)'], ['showUI', 'Show buttons (H)'], ['bLang', '한국어'], ['bAgain', 'Rest a little more'], ['bWork', 'Back to work'],
+   ['bye', 'You rested well today. You can close this window.'], ['bookPrev', '◀ Back'],
+   ['hint', '<b>Click</b> to throw · <b>Drag</b> to look around · <b>Scroll the mouse wheel</b> to zoom in · <b>Space</b> to whistle']].forEach(([id, t]) => set(id, t));
+  document.querySelector('#end .q').innerHTML = 'Even if the world spins fast,<br>you can take your time looking around.';
+  document.querySelector('#end .t').innerHTML = 'Rested today <b id="endTime"></b>';
+  document.querySelector('#end .sub').innerHTML = 'Total rest time <span id="endTotal"></span>';
+  document.getElementById('bookClose').title = 'Close book';
+}
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const W = 720, H = 360, HY = 120, SC = 2;
 
@@ -340,7 +357,7 @@ function throwAt(tx, tz) {
   dog.state = 'wait'; dog.t = 0; dog.crabDone = false;
   dog.willCrab = tz > crab.z + 0.8 && Math.random() < 0.8;
   bark(dog.z);
-  if (!thrown) { thrown = true; setHint(zoomT > 1.2 ? '' : '<b>마우스 휠</b>을 돌리면 강아지가 클로즈업돼요', 4500); }
+  if (!thrown) { thrown = true; setHint(zoomT > 1.2 ? '' : T('<b>마우스 휠</b>을 돌리면 강아지가 클로즈업돼요', '<b>Scroll the mouse wheel</b> to zoom in on your dog'), 4500); }
 }
 function landBall() {
   if (isWater(ball.x, ball.z)) { toWater(); return; }
@@ -734,25 +751,25 @@ function drawRipples() {
 }
 
 // ---------- 모닥불 ----------
-const FIRE = { x: 1150 * K, y: 872 * K, size: 3.2, on: false, lvl: 0, frame: 1, ft: 0, magic: 0, magicHue: 0 }, embers = [];
-const FIRE_IMG = ['fire0', 'flame1', 'flame2', 'flame3'].map(n => { const im = new Image(); im.src = `fire/${n}.png`; return im; }); // 0 = 돌·장작(고정), 1~3 = 불꽃만
+const FIRE = { x: 1150 * K, y: 872 * K, size: 3.2, on: false, lvl: 0, frame: 1, prev: 2, ft: 0, dur: 0.15, magic: 0, magicHue: 0 }, embers = [];
+const FIRE_IMG = ['fire0', 'flm0', 'flm1', 'flm2', 'flm3', 'flm4', 'flm5', 'flm6', 'flm7'].map(n => { const im = new Image(); im.src = `fire/${n}.png`; return im; }); // 0 = 돌·장작(고정), 1~3 = 불꽃만
 let fireNoiseG = null, firstFire = true;
-function toggleFireOff() { FIRE.on = false; $('bFire').classList.remove('on'); $('bFire').textContent = '불 피우기 (C)'; }
+function toggleFireOff() { FIRE.on = false; $('bFire').classList.remove('on'); $('bFire').textContent = T('불 피우기 (C)', 'Light fire (C)'); }
 // 컬러 불꽃 가루: 넣으면 25초 동안 불 색이 초록·파랑·보라로 천천히 바뀜
 function magicPowder() {
   initAudio();
-  if (!FIRE.on || FIRE.lvl < 0.5) { setHint('먼저 모닥불을 피워 주세요', 2000); return; }
+  if (!FIRE.on || FIRE.lvl < 0.5) { setHint(T('먼저 모닥불을 피워 주세요', 'Light the campfire first'), 2000); return; }
   FIRE.magic = 25; FIRE.magicHue = Math.random() * 360;
   for (let i = 0; i < 40; i++) embers.push({ x: (Math.random() - 0.5) * 8, y: -10, vx: (Math.random() - 0.5) * 14, vy: -14 - Math.random() * 18, t: 0, life: 1 + Math.random() * 1.6, hue: Math.random() * 360 });
   for (let i = 0; i < 6; i++) tone('sine', 1800 + i * 260, 2400 + i * 200, 0.4, 0.03, i * 0.07);
 }
 function toggleFire() {
   initAudio();
-  if (!FIRE.on && nightA < 0.6) { setHint('모닥불은 밤에만 피울 수 있어요. 해가 지면 다시 해 보세요 (T로 시간 빠르게)', 3000); return; }
+  if (!FIRE.on && nightA < 0.6) { setHint(T('모닥불은 밤에만 피울 수 있어요. 해가 지면 다시 해 보세요 (T로 시간 빠르게)', 'You can only light a campfire at night. Try again after sunset (T speeds up time)'), 3000); return; }
   FIRE.on = !FIRE.on;
   $('bFire').classList.toggle('on', FIRE.on);
-  $('bFire').textContent = FIRE.on ? '불 끄기 (C)' : '불 피우기 (C)';
-  if (FIRE.on && firstFire) { firstFire = false; setHint('모닥불을 피웠어요. 가만히 바라보세요', 2500); }
+  $('bFire').textContent = FIRE.on ? T('불 끄기 (C)', 'Put out fire (C)') : T('불 피우기 (C)', 'Light fire (C)');
+  if (FIRE.on && firstFire) { firstFire = false; setHint(T('모닥불을 피웠어요. 가만히 바라보세요', 'The campfire is lit. Just watch it for a while'), 2500); }
 }
 function drawFire(dt) {
   if (FIRE.on && nightA < 0.3) toggleFireOff(); // 아침이 오면 불이 저절로 꺼짐
@@ -770,14 +787,15 @@ function drawFire(dt) {
   }
   // GPT로 그린 모닥불: fire0 = 불 붙기 전 장작, fire1~3 = 타오르는 불꽃을 번갈아
   const fw = 20, fh = fw * 265 / 232, fx = x - fw / 2, fy = y + 3 - fh;
-  FIRE.ft -= dt; if (FIRE.ft < 0) { FIRE.ft = 0.09 + Math.random() * 0.08; FIRE.frame = 1 + (FIRE.frame + (Math.random() < 0.6 ? 0 : 1)) % 3; }
+  FIRE.ft -= dt; if (FIRE.ft < 0) { FIRE.dur = FIRE.ft = 0.12 + Math.random() * 0.1; FIRE.prev = FIRE.frame; do FIRE.frame = 1 + (Math.random() * 8 | 0); while (FIRE.frame === FIRE.prev); } // 불꽃 8장 중 하나로 부드럽게 넘어감
   if (FIRE_IMG[0].complete) { ctx.filter = `brightness(${lerp(1 - 0.55 * nightA, 1.05, L)})`; ctx.drawImage(FIRE_IMG[0], fx, fy, fw, fh); ctx.filter = 'none'; } // 돌과 장작은 움직이지 않음
   if (L > 0.02) {
-    const img = FIRE_IMG[FIRE.frame], sy = 1 + 0.04 * Math.sin(time * 9) * Math.sin(time * 5.3);
+    const sy = 1 + 0.03 * Math.sin(time * 9) * Math.sin(time * 5.3), f = 1 - FIRE.ft / FIRE.dur;
+    const fl = (img, al) => { if (img.complete && al > 0.01) { ctx.globalAlpha = al; ctx.drawImage(img, fx, y + 3 - fh * sy, fw, fh * sy); } };
     if (FIRE.magic > 0) FIRE.magic -= dt;
     const mg = clamp(Math.min(FIRE.magic, 25 - FIRE.magic) / 2, 0, 1); // 2초에 걸쳐 바뀌고 2초에 걸쳐 돌아옴
-    ctx.globalAlpha = L; if (img.complete) ctx.drawImage(img, fx, y + 3 - fh * sy, fw, fh * sy);
-    if (mg > 0 && img.complete) { ctx.globalAlpha = L * mg; ctx.filter = `hue-rotate(${(FIRE.magicHue + time * 25) % 360}deg) saturate(1.6) brightness(1.1)`; ctx.drawImage(img, fx, y + 3 - fh * sy, fw, fh * sy); ctx.filter = 'none'; if (Math.random() < dt * 10) embers.push({ x: (Math.random() - 0.5) * 6, y: -12, vx: (Math.random() - 0.5) * 6, vy: -12 - Math.random() * 14, t: 0, life: 1.2 + Math.random() * 1.4, hue: Math.random() * 360 }); }
+    fl(FIRE_IMG[FIRE.prev], L); fl(FIRE_IMG[FIRE.frame], L * f);
+    if (mg > 0) { ctx.filter = `hue-rotate(${(FIRE.magicHue + time * 25) % 360}deg) saturate(1.6) brightness(1.1)`; fl(FIRE_IMG[FIRE.prev], L * mg); fl(FIRE_IMG[FIRE.frame], L * mg * f); ctx.filter = 'none'; if (Math.random() < dt * 10) embers.push({ x: (Math.random() - 0.5) * 6, y: -12, vx: (Math.random() - 0.5) * 6, vy: -12 - Math.random() * 14, t: 0, life: 1.2 + Math.random() * 1.4, hue: Math.random() * 360 }); }
     ctx.globalAlpha = 1;
     if (Math.random() < dt * 6 * L) embers.push({ x: x + (Math.random() - 0.5) * 6, y: y - 12, vx: (Math.random() - 0.5) * 4, vy: -10 - Math.random() * 12, t: 0, life: 1.2 + Math.random() * 1.5 });
   }
@@ -815,17 +833,17 @@ let radioOn = false, radioG = null, radioTimer = null, radioI = 0, radioLoading 
 const radioBufs = [];
 async function toggleRadio() {
   initAudio(); if (!AC || radioLoading) return;
-  radioOn = !radioOn; $('bRadio').classList.toggle('on', radioOn); $('bRadio').textContent = radioOn ? '음악 끄기 (R)' : '음악 켜기 (R)';
+  radioOn = !radioOn; $('bRadio').classList.toggle('on', radioOn); $('bRadio').textContent = radioOn ? T('음악 끄기 (R)', 'Music off (R)') : T('음악 켜기 (R)', 'Music on (R)');
   if (!radioOn) { clearTimeout(radioTimer); if (radioG) { const g = radioG; g.gain.cancelScheduledValues(AC.currentTime); g.gain.setValueAtTime(g.gain.value, AC.currentTime); g.gain.linearRampToValueAtTime(0, AC.currentTime + 2); setTimeout(() => g.disconnect(), 2500); radioG = null; } return; }
   if (!radioBufs.length) {
     radioLoading = true;
     const got = await Promise.all(RADIO_SRCS.map(async src => { try { const r = await fetch(src); return r.ok ? await AC.decodeAudioData(await r.arrayBuffer()) : null; } catch (e) { return null; } }));
     radioLoading = false; got.forEach(b => b && radioBufs.push(b));
-    if (!radioBufs.length) { setHint('라디오 음악을 불러오지 못했어요', 2500); radioOn = false; $('bRadio').classList.remove('on'); $('bRadio').textContent = '음악 켜기 (R)'; return; }
+    if (!radioBufs.length) { setHint(T('라디오 음악을 불러오지 못했어요', 'Couldn\'t load the music'), 2500); radioOn = false; $('bRadio').classList.remove('on'); $('bRadio').textContent = T('음악 켜기 (R)', 'Music on (R)'); return; }
     if (!radioOn) return;
   }
   radioG = AC.createGain(); radioG.gain.value = 0; radioG.connect(master); radioG.gain.linearRampToValueAtTime(0.6, AC.currentTime + 3);
-  if (thrown) setHint('잔잔한 음악을 틀었어요', 2000);
+  if (thrown) setHint(T('잔잔한 음악을 틀었어요', 'Playing some calm music'), 2000);
   playSeg(radioG, AC.currentTime + 0.05);
 }
 function playSeg(out, when) {
@@ -842,7 +860,7 @@ let totalBefore = 0;
 try { totalBefore = +localStorage.getItem('healTotal') || 0; } catch (e) {}
 function fmtDur(sec) {
   const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = Math.floor(sec % 60);
-  return h ? `${h}시간 ${m}분` : m ? `${m}분 ${s}초` : `${s}초`;
+  return LANG === 'en' ? (h ? `${h}h ${m}m` : m ? `${m}m ${s}s` : `${s}s`) : h ? `${h}시간 ${m}분` : m ? `${m}분 ${s}초` : `${s}초`;
 }
 let ended = false;
 function endRest() {
@@ -924,7 +942,7 @@ document.addEventListener('fullscreenchange', () => { if (!document.fullscreenEl
 
 // ---------- 책 ----------
 // 우리가 직접 쓴 짧은 글. 한 줄 묶음이 한 장.
-const BOOKS = [
+const BOOKS_KO = [
   { title: '파도가 남기는 것', pages: [
     '파도는 하루에도 수천 번\n같은 모래 위로 올라왔다가 돌아간다.',
     '올 때마다 무언가를 조금씩 두고 간다.\n조개껍데기 하나, 반짝이는 물기, 작은 거품.',
@@ -944,15 +962,36 @@ const BOOKS = [
     '오늘도 잘 받았습니다.\n내일도 여기 앉아 있을게요.',
   ] },
 ];
+const BOOKS_EN = [
+  { title: 'What the Waves Leave Behind', pages: [
+    'Thousands of times a day, the waves\nclimb the same sand and slip back again.',
+    'Each time, they leave a little something.\nA seashell, a glint of water, a bubble of foam.',
+    'And when they go back,\nthey take one footprint with them.',
+    'That is why the beach always feels new.\nThe path you walked today is a new path tomorrow.',
+  ] },
+  { title: 'The Way Back with the Ball', pages: [
+    'When you throw the ball, the dog runs without looking back,\nas if that ball were the only thing in the world.',
+    'But the way back is always a little longer.\nA crab to meet, a gull to chase, a puddle to peer into.',
+    'At first, I called it to hurry back.\nNow I just watch.',
+    'Maybe the dog does not go to fetch the ball at all.\nMaybe it goes to enjoy the way back.',
+  ] },
+  { title: 'A Letter at Dusk', pages: [
+    'Just before the sun touches the sea,\nthe sky lays out every color it gathered all day.',
+    'Pink, violet, gold.\nA letter no one ordered, delivered every single day.',
+    'Reading it is simple.\nDo nothing, and watch until the very end.',
+    'Received again today, thank you.\nI will be sitting here tomorrow, too.',
+  ] },
+];
+const BOOKS = LANG === 'en' ? BOOKS_EN : BOOKS_KO;
 let bookI = 0, pageI = 0, typeT = null;
 const bookEl = document.getElementById('book');
 function showPage() {
   const b = BOOKS[bookI], txt = b.pages[pageI];
-  $('bookTitle').textContent = `『${b.title}』`;
-  $('bookPage').textContent = `${bookI + 1}편 · ${pageI + 1} / ${b.pages.length}`;
+  $('bookTitle').textContent = LANG === 'en' ? `“${b.title}”` : `『${b.title}』`;
+  $('bookPage').textContent = LANG === 'en' ? `Story ${bookI + 1} · ${pageI + 1} / ${b.pages.length}` : `${bookI + 1}편 · ${pageI + 1} / ${b.pages.length}`;
   $('bookPrev').style.visibility = bookI === 0 && pageI === 0 ? 'hidden' : 'visible';
   const last = bookI === BOOKS.length - 1 && pageI === b.pages.length - 1;
-  $('bookMore').textContent = last ? '마지막 장이에요' : pageI === b.pages.length - 1 ? '클릭하면 다음 이야기 ▼' : '클릭하면 다음 장 ▼';
+  $('bookMore').textContent = last ? T('마지막 장이에요', 'Last page') : pageI === b.pages.length - 1 ? T('클릭하면 다음 이야기 ▼', 'Click for the next story ▼') : T('클릭하면 다음 장 ▼', 'Click for the next page ▼');
   clearInterval(typeT);
   let n = 0; $('bookText').textContent = '';
   typeT = setInterval(() => { n++; $('bookText').textContent = txt.slice(0, n); if (n >= txt.length) { clearInterval(typeT); typeT = null; } }, 45);
@@ -973,7 +1012,7 @@ function prevPage() {
 function setBook(open) {
   bookEl.classList.toggle('open', open);
   $('bBook').classList.toggle('on', open);
-  $('bBook').textContent = open ? '책 덮기 (B)' : '책 펴기 (B)';
+  $('bBook').textContent = open ? T('책 덮기 (B)', 'Close book (B)') : T('책 펴기 (B)', 'Open book (B)');
   if (open) showPage(); else { clearInterval(typeT); typeT = null; }
   fit();
 }
@@ -1005,7 +1044,7 @@ cv.addEventListener('pointerup', e => {
 function clickAt(b) {
   if (petable() && overDog(b)) { if (dog.state !== 'pet') { dog.state = 'pet'; dog.petT = 0; } dog.petIdle = 0; hearts.push({ x: b.x, y: b.y, t: time }); happyWhine(); return; }
   if (ball.state !== 'held' || !['home', 'homesleep'].includes(dog.state)) {
-    setHint('강아지가 아직 놀고 있어요. <b>스페이스</b>로 휘파람을 불어 보세요', 2500); return;
+    setHint(T('강아지가 아직 놀고 있어요. <b>스페이스</b>로 휘파람을 불어 보세요', 'Your dog is still playing. Press <b>Space</b> to whistle'), 2500); return;
   }
   let t = unproj(b.x, b.y);
   if (!t && b.y < ROUTE[ROUTE.length - 1].y) t = { x: 0, z: Z_MAX }; // 하늘이나 먼 바다를 누르면 아주 멀리
@@ -1021,10 +1060,11 @@ cv.addEventListener('wheel', e => {
 const $ = id => document.getElementById(id);
 function setType(t) { curType = t; $('bBall').classList.toggle('on', t === 'ball'); $('bDisc').classList.toggle('on', t === 'disc'); if (ball.state === 'held') ball.type = t; }
 function setFollow(v) { followDog = v; $('bFollow').classList.toggle('on', v); }
-function setMute(v) { muted = v; if (master) master.gain.value = v ? 0 : 0.7; $('bMute').textContent = v ? '소리 꺼짐' : '소리 켜짐'; }
+function setMute(v) { muted = v; if (master) master.gain.value = v ? 0 : 0.7; $('bMute').textContent = v ? T('소리 꺼짐', 'Sound off') : T('소리 켜짐', 'Sound on'); }
 $('bFire').onclick = toggleFire;
 $('bMagic').onclick = magicPowder;
 $('bRadio').onclick = toggleRadio;
+$('bLang').onclick = () => { location.search = '?lang=' + (LANG === 'ko' ? 'en' : 'ko'); };
 $('bClean').onclick = () => setClean(true);
 $('showUI').onclick = () => setClean(false);
 $('bEnd').onclick = endRest;
@@ -1049,7 +1089,7 @@ addEventListener('keydown', e => {
   else if (e.key === 'Enter' && bookEl.classList.contains('open')) nextPage();
   else if (e.key === '1') setType('ball');
   else if (e.key === '2') setType('disc');
-  else if (e.key === 't' || e.key === 'T') { todSpeed = todSpeed === 1 ? 12 : 1; setHint(todSpeed === 1 ? '시간이 보통 속도로 흘러요' : '시간이 빠르게 흘러요 (T로 되돌리기)', 2000); }
+  else if (e.key === 't' || e.key === 'T') { todSpeed = todSpeed === 1 ? 12 : 1; setHint(todSpeed === 1 ? T('시간이 보통 속도로 흘러요', 'Time flows normally') : T('시간이 빠르게 흘러요 (T로 되돌리기)', 'Time is flowing fast (T to reset)'), 2000); }
   else if (e.key === 'f' || e.key === 'F') setFollow(!followDog);
   else if (e.key === '+' || e.key === '=') zoomT = clamp(zoomT * 1.6, 1, 6);
   else if (e.key === '-') zoomT = clamp(zoomT / 1.6, 1, 6);
