@@ -1,0 +1,976 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>망원경 너머 강아지</title>
+<style>
+html,body{margin:0;height:100%;background:#120c14;overflow:hidden;font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;color:#f5e6d0}
+#wrap{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:10px 16px;box-sizing:border-box}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;cursor:crosshair;touch-action:none;flex:none}
+#ui{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:100%;flex:none}
+#book{display:none;flex:none;box-sizing:border-box;width:100%;max-width:900px;min-height:132px;background:#f3e6cc;color:#3a2a1e;border:3px solid #5a3a26;border-radius:10px;box-shadow:inset 0 0 0 3px #e2cfa8,0 4px 0 #2a1a12;padding:14px 20px 12px;font-family:"Nanum Myeongjo","Batang","Noto Serif KR",serif;cursor:pointer;position:relative;user-select:none}
+#book.open{display:block}
+#bookTitle{font-size:13px;color:#8a5a3a;margin-bottom:6px;letter-spacing:.05em}
+#bookText{font-size:18px;line-height:1.7;white-space:pre-line;min-height:62px}
+#bookNav{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:12px;color:#8a6a4a;font-family:system-ui,"Malgun Gothic",sans-serif}
+#bookNav span.more{animation:bob 1s infinite}
+@keyframes bob{50%{transform:translateY(3px)}}
+#end{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,6,16,0);opacity:0;pointer-events:none;transition:opacity 3s,background 3s;padding:16px;box-sizing:border-box}
+#end.show{opacity:1;pointer-events:auto;background:rgba(10,6,16,.9)}
+#end .box{text-align:center;max-width:560px}
+#end .q{font-family:"Nanum Myeongjo","Batang","Noto Serif KR",serif;font-size:28px;line-height:1.7;margin:0 0 28px;opacity:0;transition:opacity 3s 1.5s}
+#end.show .q{opacity:1}
+#end .t{font-size:17px;margin:0 0 6px}#end .sub{font-size:13px;opacity:.7;margin:0 0 26px}
+#end .btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#end button.work{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.35)}
+#end .bye{display:none;font-size:15px;opacity:.85;margin-top:22px}
+#end.done .btns{display:none}#end.done .bye{display:block}
+#end button{background:rgba(220,140,80,.6);color:#fff;border:1px solid rgba(255,220,180,.6);border-radius:8px;padding:8px 16px;font-size:14px;cursor:pointer;font-family:inherit}
+#bookClose{position:absolute;top:8px;right:12px;background:none;border:none;color:#8a5a3a;font-size:16px;cursor:pointer}
+#ui button{background:rgba(20,12,20,.55);color:#f5e6d0;border:1px solid rgba(255,220,180,.25);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;font-family:inherit}
+#ui button.on{background:rgba(220,140,80,.6);border-color:rgba(255,220,180,.7)}
+#hint{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:rgba(20,12,20,.6);padding:8px 14px;border-radius:10px;font-size:13px;transition:opacity 1.2s;text-align:center;width:max-content;max-width:calc(100% - 32px);pointer-events:none}
+</style>
+</head>
+<body>
+<div id="wrap">
+<canvas id="c" width="1280" height="720"></canvas>
+<div id="book">
+  <button id="bookClose" title="책 덮기">✕</button>
+  <div id="bookTitle"></div>
+  <div id="bookText"></div>
+  <div id="bookNav"><span id="bookPrev">◀ 앞 장</span><span id="bookPage"></span><span id="bookMore" class="more">클릭하면 다음 장 ▼</span></div>
+</div>
+<div id="ui">
+  <button id="bBook">책 펴기 (B)</button>
+  <button id="bFire">불 피우기 (C)</button>
+  <button id="bRadio">라디오 (R)</button>
+  <button id="bBall" class="on">공 (1)</button>
+  <button id="bDisc">원반 (2)</button>
+  <button id="bWhistle">휘파람 (Space)</button>
+  <button id="bZin">망원경 +</button>
+  <button id="bZout">망원경 −</button>
+  <button id="bFollow" class="on">강아지 따라보기 (F)</button>
+  <button id="bMute">소리 켜짐</button>
+  <button id="bEnd">그만 쉬기 (Esc)</button>
+</div>
+</div>
+<div id="end"><div class="box">
+  <p class="q">세상이 빠르게 돌아가도,<br>너는 천천히 둘러보면 돼.</p>
+  <p class="t">오늘 쉰 시간 <b id="endTime"></b></p>
+  <p class="sub">지금까지 쉰 시간 <span id="endTotal"></span></p>
+  <div class="btns"><button id="bAgain">다시 쉬러 가기</button><button id="bWork" class="work">이제 일하러 가기</button></div>
+  <p class="bye" id="bye">오늘도 잘 쉬었어요. 이 창은 닫아도 돼요.</p>
+</div></div>
+<div id="hint"><b>클릭</b>해서 던지기 · <b>드래그</b>로 둘러보기 · <b>휠</b>로 망원경 · <b>스페이스</b>로 휘파람</div>
+<script>
+'use strict';
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const W = 720, H = 360, HY = 120, SC = 2;
+
+// ---------- 수학/노이즈 ----------
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+const sst = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const mix = (c1, c2, t) => [lerp(c1[0], c2[0], t), lerp(c1[1], c2[1], t), lerp(c1[2], c2[2], t)];
+function hash(x, y) {
+  let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+function vn(x, y) {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const a = hash(xi, yi), b = hash(xi + 1, yi), c = hash(xi, yi + 1), d = hash(xi + 1, yi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+const fbm = (x, y) => vn(x, y) * .6 + vn(x * 2.03 + 17, y * 2.03 + 5) * .28 + vn(x * 4.1 + 3, y * 4.1 + 11) * .12;
+function rng(seed) { return () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+function qz(v, x, y) { const s = 18, t = BAYER[(y & 3) * 4 + (x & 3)] / 16 - 0.47; return clamp(Math.round(v / s + t) * s, 0, 255); }
+
+// ---------- 세계: 그림 속 길을 따라가는 좌표 ----------
+// z: 길을 따라 카메라에서 멀어지는 거리, x: 길에서 좌우로 벗어난 정도, y: 높이
+// 길 위의 점은 그림 픽셀 좌표(1774x887)로 찍고, s는 그 지점에서 1m가 몇 그림 픽셀인지.
+const IMG_W = 1774, IMG_H = 887, K = H / IMG_H;
+const ROUTE_IMG = [
+  { x: 905, y: 905, s: 230, hw: 1.0 },
+  { x: 865, y: 830, s: 175, hw: 1.0 },
+  { x: 800, y: 775, s: 130, hw: 1.1 },
+  { x: 730, y: 735, s: 95, hw: 1.2 },
+  { x: 685, y: 695, s: 70, hw: 1.3 },
+  { x: 690, y: 655, s: 52, hw: 1.4 },
+  { x: 722, y: 627, s: 40, hw: 1.6 },
+  { x: 770, y: 610, s: 32, hw: 2.2, beach: true },   // 해변
+  { x: 830, y: 598, s: 28, hw: 2.4, water: true },   // 석호로 들어감
+  { x: 900, y: 565, s: 24, hw: 3.0, water: true },
+  { x: 970, y: 530, s: 20, hw: 3.4, water: true },
+];
+const ROUTE = [];
+(function buildRoute() {
+  let z = 0;
+  ROUTE_IMG.forEach((p, i) => {
+    const q = { x: p.x * K, y: p.y * K, s: p.s * K, hw: p.hw, water: !!p.water, beach: !!p.beach };
+    if (i > 0) { const a = ROUTE[i - 1]; z += Math.hypot(q.x - a.x, q.y - a.y) / ((a.s + q.s) / 2); }
+    q.z = z; ROUTE.push(q);
+  });
+})();
+const Z_MAX = ROUTE[ROUTE.length - 1].z;
+const Z_WATER = ROUTE.find(p => p.water).z - 0.35;
+const Z_BEACH = ROUTE.find(p => p.beach).z;
+function routeAt(z) {
+  z = clamp(z, 0, Z_MAX);
+  let i = 1; while (i < ROUTE.length - 1 && ROUTE[i].z < z) i++;
+  const a = ROUTE[i - 1], b = ROUTE[i], t = clamp((z - a.z) / (b.z - a.z), 0, 1);
+  return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), s: lerp(a.s, b.s, t), hw: lerp(a.hw, b.hw, t) };
+}
+const pathX = () => 0;
+const pathW = z => routeAt(z).hw;
+const proj = (x, z, y = 0) => { const r = routeAt(z); return { sx: r.x + x * r.s, sy: r.y - y * r.s, s: r.s }; };
+function unproj(sx, sy) {
+  let best = null, bd = 1e9;
+  for (let z = 0; z <= Z_MAX; z += 0.03) {
+    const r = routeAt(z), d = Math.abs(sy - r.y) + Math.max(0, Math.abs(sx - r.x) - r.hw * r.s) * 0.5;
+    if (d < bd) { bd = d; best = { z, r }; }
+  }
+  if (!best || bd > 40) return null;
+  return { x: clamp((sx - best.r.x) / best.r.s, -best.r.hw, best.r.hw), z: best.z };
+}
+const isWater = (x, z) => z >= Z_WATER;
+function zAtImgY(yImg) { const y = yImg * K; for (let z = 0; z <= Z_MAX; z += 0.005) if (routeAt(z).y <= y) return z; return 0; }
+
+// ---------- 배경 그림 ----------
+const PANO = { dusk: new Image(), night: new Image() };
+PANO.dusk.src = 'pano_dusk_01.png';
+PANO.night.src = 'pano_night_01.png';
+// 그려진 해를 지우고 그 자리에서 움직이는 해를 따로 그림
+const SUN_IMG = { x: 1297, y: 285, r: 20 }, HORIZON_IMG = 300;
+let duskNoSun = null;
+function prepDusk() {
+  const c = document.createElement('canvas'); c.width = IMG_W; c.height = IMG_H;
+  const g = c.getContext('2d'); g.drawImage(PANO.dusk, 0, 0);
+  const sample = g.getImageData(SUN_IMG.x - 2, SUN_IMG.y - 48, 4, 4).data;
+  const col = `${sample[0]},${sample[1]},${sample[2]}`;
+  const grd = g.createRadialGradient(SUN_IMG.x, SUN_IMG.y, 0, SUN_IMG.x, SUN_IMG.y, 46);
+  grd.addColorStop(0, `rgba(${col},1)`); grd.addColorStop(0.55, `rgba(${col},0.95)`); grd.addColorStop(1, `rgba(${col},0)`);
+  g.save(); g.beginPath(); g.rect(0, 0, IMG_W, HORIZON_IMG); g.clip();
+  g.fillStyle = grd; g.fillRect(SUN_IMG.x - 50, SUN_IMG.y - 50, 100, 100); g.restore();
+  duskNoSun = c;
+}
+// 해변 물가 선 (파도가 밀려왔다 빠지는 곳), 그림 픽셀 좌표
+const SHORE_IMG = [[575, 455], [585, 500], [610, 545], [660, 580], [730, 602], [820, 612], [920, 616], [1010, 612], [1090, 600]];
+const LAGOON_C = { x: 860 * K, y: 500 * K };
+
+// ---------- 픽셀 스프라이트 ----------
+function cnv(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+function outline(c, col) {
+  const g = c.getContext('2d'), d = g.getImageData(0, 0, c.width, c.height), a = d.data, o = new Uint8ClampedArray(a), w = c.width, h = c.height;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4; if (o[i + 3]) continue;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const X = x + dx, Y = y + dy;
+      if (X >= 0 && Y >= 0 && X < w && Y < h && o[(Y * w + X) * 4 + 3]) { a[i] = col[0]; a[i + 1] = col[1]; a[i + 2] = col[2]; a[i + 3] = 255; break; }
+    }
+  }
+  g.putImageData(d, 0, 0);
+}
+function flipC(c) { const f = cnv(c.width, c.height), g = f.getContext('2d'); g.translate(c.width, 0); g.scale(-1, 1); g.drawImage(c, 0, 0); return f; }
+function sprite(w, h, fn, oc = [52, 30, 24]) {
+  const c = cnv(w + 2, h + 2), g = c.getContext('2d');
+  fn((x, y, ww, hh, col) => { g.fillStyle = col; g.fillRect(x + 1, y + 1, ww, hh); });
+  outline(c, oc);
+  return [c, flipC(c)];
+}
+const DC = { b: '#d99a5b', l: '#f4dcb0', d: '#9a5e33', n: '#2b1a12', c: '#d4483f', t: '#ee8fa0' };
+function dogStand(R, legs, wag, alert, mouth) {
+  if (wag === 0) { R(1, 2, 1, 2, DC.d); R(2, 4, 1, 2, DC.b); } else { R(0, 4, 2, 1, DC.d); R(2, 4, 1, 2, DC.b); }
+  R(3, 6, 10, 4, DC.b); R(5, 6, 6, 1, DC.d); R(5, 9, 6, 1, DC.l);
+  for (const x of (legs === 0 ? [4, 6, 10, 12] : legs === 1 ? [3, 5, 11, 13] : [5, 6, 10, 11])) { R(x, 10, 1, 2, DC.b); R(x, 12, 1, 1, DC.l); }
+  R(12, 2, 5, 5, DC.b);
+  if (alert) R(12, 0, 2, 3, DC.d); else R(12, 2, 2, 4, DC.d);
+  R(17, 4, 2, 2, DC.l); R(19, 4, 1, 1, DC.n); R(15, 3, 1, 1, DC.n); R(15, 5, 2, 1, DC.l);
+  if (mouth) R(17, 6, 1, 1, DC.t);
+  R(12, 7, 2, 1, DC.c);
+}
+function dogSit(R, wag, mouth) {
+  if (wag === 0) R(0, 11, 3, 1, DC.d); else { R(0, 10, 1, 1, DC.d); R(1, 11, 2, 1, DC.d); }
+  R(3, 8, 6, 4, DC.b); R(4, 8, 3, 1, DC.d); R(3, 12, 4, 1, DC.l);
+  R(9, 5, 4, 7, DC.b); R(11, 7, 2, 4, DC.l); R(10, 12, 1, 1, DC.l); R(12, 12, 1, 1, DC.l);
+  R(11, 1, 5, 5, DC.b); R(11, 1, 2, 4, DC.d); R(16, 3, 2, 2, DC.l); R(18, 3, 1, 1, DC.n); R(14, 2, 1, 1, DC.n); R(14, 4, 2, 1, DC.l);
+  R(11, 6, 3, 1, DC.c);
+  if (mouth) R(16, 5, 1, 1, DC.t);
+}
+function dogSleep(R) {
+  R(0, 11, 3, 1, DC.d); R(3, 9, 10, 4, DC.b); R(5, 9, 6, 1, DC.d); R(13, 12, 4, 1, DC.l);
+  R(12, 8, 5, 4, DC.b); R(12, 8, 2, 3, DC.d); R(14, 9, 2, 1, DC.n); R(17, 10, 2, 2, DC.l); R(18, 10, 1, 1, DC.n);
+}
+function dogBow(R, wag) {
+  if (wag === 0) R(2, 1, 1, 3, DC.d); else R(1, 1, 1, 3, DC.d);
+  R(3, 4, 5, 5, DC.b); R(4, 4, 3, 1, DC.d); R(4, 9, 1, 3, DC.b); R(6, 9, 1, 3, DC.b); R(4, 12, 1, 1, DC.l); R(6, 12, 1, 1, DC.l);
+  R(8, 7, 5, 4, DC.b); R(10, 11, 5, 1, DC.b); R(15, 11, 2, 1, DC.l);
+  R(13, 5, 5, 5, DC.b); R(13, 5, 2, 4, DC.d); R(16, 6, 1, 1, DC.n); R(18, 8, 2, 2, DC.l); R(19, 8, 1, 1, DC.n);
+}
+function dogSwim(R, wag) {
+  if (wag === 0) R(3, 8, 1, 2, DC.d); else R(2, 9, 2, 1, DC.d);
+  R(4, 9, 9, 2, DC.b); R(6, 9, 6, 1, DC.d);
+  R(12, 4, 5, 5, DC.b); R(12, 4, 2, 4, DC.d); R(15, 5, 1, 1, DC.n); R(17, 6, 2, 2, DC.l); R(19, 6, 1, 1, DC.n);
+}
+const DOG = {
+  stand: [0, 1].map(w => sprite(20, 14, R => dogStand(R, 0, w, false, false))),
+  alert: [sprite(20, 14, R => dogStand(R, 0, 0, true, false))],
+  run: [1, 2].map(l => sprite(20, 14, R => dogStand(R, l, l - 1, false, true))),
+  sit: [0, 1].map(w => sprite(20, 14, R => dogSit(R, w, true))),
+  sleep: [sprite(20, 14, dogSleep)],
+  bow: [0, 1].map(w => sprite(20, 14, R => dogBow(R, w))),
+  swim: [0, 1].map(w => sprite(20, 14, R => dogSwim(R, w))),
+};
+const MOUTH = { stand: [20, 7], alert: [20, 7], run: [20, 7], sit: [19, 6], bow: [20, 11], swim: [20, 9], sleep: [19, 12] };
+
+const CRAB = [true, false].map(up => sprite(9, 6, R => {
+  R(2, 3, 5, 2, '#d8553a'); R(3, 2, 3, 1, '#e8704a'); R(3, 1, 1, 1, '#2b1a12'); R(5, 1, 1, 1, '#2b1a12');
+  if (up) { R(0, 0, 2, 2, '#f08050'); R(7, 0, 2, 2, '#f08050'); R(1, 2, 1, 1, '#d8553a'); R(7, 2, 1, 1, '#d8553a'); }
+  else { R(0, 2, 2, 2, '#f08050'); R(7, 2, 2, 2, '#f08050'); }
+  for (const x of [1, 3, 5, 7]) R(x, 5, 1, 1, '#b03a2a');
+})[0]);
+const GULL_FLY = [true, false].map(up => sprite(11, 5, R => {
+  if (up) { R(0, 0, 2, 1, '#dfe6ea'); R(2, 1, 2, 1, '#fff'); R(7, 1, 2, 1, '#fff'); R(9, 0, 2, 1, '#dfe6ea'); }
+  else { R(0, 3, 2, 1, '#dfe6ea'); R(2, 2, 2, 1, '#fff'); R(7, 2, 2, 1, '#fff'); R(9, 3, 2, 1, '#dfe6ea'); }
+  R(4, 2, 3, 1, '#fff');
+}, [70, 70, 84])[0]);
+const GULL_STAND = sprite(7, 7, R => {
+  R(0, 2, 5, 3, '#fff'); R(1, 2, 3, 2, '#9aa4ae'); R(4, 0, 2, 3, '#fff'); R(5, 1, 1, 1, '#2b1a12'); R(6, 1, 1, 1, '#f0b030');
+  R(1, 5, 1, 2, '#f0b030'); R(3, 5, 1, 2, '#f0b030'); R(0, 4, 1, 1, '#2b2b33');
+}, [70, 70, 84]);
+const BALL = sprite(4, 4, R => { R(1, 0, 2, 1, '#e04848'); R(0, 1, 4, 2, '#e04848'); R(1, 3, 2, 1, '#e04848'); R(1, 1, 1, 1, '#ffb0a0'); })[0];
+const DISC = sprite(6, 2, R => { R(0, 0, 6, 2, '#ffc030'); R(1, 0, 4, 1, '#fff0a0'); })[0];
+function bitIcon(rows, col) { return sprite(rows[0].length, rows.length, R => rows.forEach((r, y) => [...r].forEach((ch, x) => { if (ch === '1') R(x, y, 1, 1, col); })))[0]; }
+const ICON = {
+  '!': bitIcon(['1', '1', '1', '1', '0', '1'], '#fff6d0'),
+  '?': bitIcon(['0110', '1001', '0010', '0100', '0000', '0100'], '#fff6d0'),
+  heart: bitIcon(['0110110', '1111111', '1111111', '0111110', '0011100', '0001000'], '#ff6a88'),
+  z: bitIcon(['1111', '0010', '0100', '1111'], '#d8e4ff'),
+  note: bitIcon(['0011', '0010', '0010', '1110', '1100'], '#fff6d0'),
+};
+
+// ---------- 소리 ----------
+let AC = null, master = null, muted = false;
+function initAudio() {
+  if (AC) return;
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  master = AC.createGain(); master.gain.value = muted ? 0 : 0.7; master.connect(AC.destination);
+  const len = AC.sampleRate * 4;
+  // 파도 (낮은 웅웅거림이 천천히 밀려왔다 빠짐)
+  const buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0);
+  let last = 0; for (let i = 0; i < len; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; }
+  const src = AC.createBufferSource(); src.buffer = buf; src.loop = true;
+  const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 700;
+  const g = AC.createGain(); g.gain.value = 0.22;
+  const lfo = AC.createOscillator(); lfo.frequency.value = 0.085; const lg = AC.createGain(); lg.gain.value = 0.16; lfo.connect(lg); lg.connect(g.gain);
+  src.connect(lp); lp.connect(g); g.connect(master); src.start(); lfo.start();
+  // 물거품 쉬익
+  const nb = AC.createBuffer(1, len, AC.sampleRate), nd = nb.getChannelData(0); for (let i = 0; i < len; i++) nd[i] = Math.random() * 2 - 1;
+  const s2 = AC.createBufferSource(); s2.buffer = nb; s2.loop = true;
+  const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2500; bp.Q.value = 0.6;
+  const g2 = AC.createGain(); g2.gain.value = 0.02;
+  const l2 = AC.createOscillator(); l2.frequency.value = 0.085; const lg2 = AC.createGain(); lg2.gain.value = 0.018; l2.connect(lg2); lg2.connect(g2.gain);
+  s2.connect(bp); bp.connect(g2); g2.connect(master); s2.start(); l2.start();
+}
+function tone(type, f0, f1, dur, vol, delay = 0, filt = 0) {
+  if (!AC) return;
+  const t = AC.currentTime + delay, o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  let n = o; if (filt) { const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = filt; o.connect(f); n = f; }
+  n.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05);
+}
+const distVol = z => clamp(2.2 / z, 0.06, 1);
+function playWhistle() { tone('sine', 1700, 2500, 0.18, 0.16); tone('sine', 2000, 2700, 0.24, 0.16, 0.24); }
+function bark(z) { const v = 0.32 * distVol(z); tone('sawtooth', 560, 240, 0.11, v, 0, 1500); tone('square', 540, 260, 0.1, v * 0.4, 0, 1200); tone('sawtooth', 600, 250, 0.12, v, 0.17, 1500); }
+function barkSoft() { tone('sine', 900, 1300, 0.12, 0.07); tone('sine', 1000, 1400, 0.1, 0.05, 0.15); }
+function gullCry(z) { const v = 0.06 * distVol(z / 3); for (let i = 0; i < 3; i++) tone('triangle', 1500, 900, 0.16, v, i * 0.22); }
+function splashSnd(z) {
+  if (!AC) return;
+  const n = AC.sampleRate * 0.35, b = AC.createBuffer(1, n, AC.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n) ** 2;
+  const s = AC.createBufferSource(); s.buffer = b; const f = AC.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 900;
+  const g = AC.createGain(); g.gain.value = 0.5 * distVol(z); s.connect(f); f.connect(g); g.connect(master); s.start();
+}
+
+// ---------- 게임 상태 ----------
+const HOME = { x: 0, z: zAtImgY(878) }, HELD = { x: -0.55, z: zAtImgY(872) };
+const dog = { x: HOME.x, z: HOME.z, y: 0, vy: 0, state: 'home', t: 0, anim: 0, face: -1, carry: false, icon: null, homeT: 0, moving: false, ripT: 0 };
+const ball = { type: 'ball', state: 'held', x: HELD.x, z: HELD.z, y: 0, vx: 0, vz: 0, vy: 0, u: 0, ripT: 0 };
+const crab = { bx: 0.7, x: 0, z: Z_BEACH + 0.15, t: 0, pinch: 0 };
+const gull = { state: 'sky', wait: 12, x: 0, z: 20, y: 9, t: 0 };
+const fliers = [0, 1, 2].map(i => ({ a: i * 2.1, r: 6 + i * 2, cx: -3 + i * 3, sp: 0.18 + i * 0.05 }));
+const ripples = [], parts = [];
+const BASEZ = 1.2; // 평소에도 그림을 조금 당겨 보여서 좌우로 둘러볼 여유를 둠
+let drag = null, lastDrag = -99, viewPX = 2;
+let curType = 'ball', zoom = 1, zoomT = 1, vx = W / 2, vy = H, mfx = 0.5, mfy = 0.5, mouseIdle = 99, followDog = true, time = 0, thrown = false;
+
+function icon(type, t = 1.2) { dog.icon = { type, t }; }
+function moveToward(e, tx, tz, speed, dt) {
+  const dx = tx - e.x, dz = tz - e.z, d = Math.hypot(dx, dz);
+  if (d < 1e-4) return 0;
+  const st = Math.min(d, speed * dt);
+  e.x += dx / d * st; e.z += dz / d * st;
+  if (Math.abs(dx) > 0.05) e.face = dx > 0 ? 1 : -1;
+  return d - st;
+}
+function inWall(x, z) { return Math.abs(x) > pathW(z) + 0.01; }
+
+function throwAt(tx, tz) {
+  const sx = 0.1, sz = 0.05, dist = Math.hypot(tx - sx, tz - sz);
+  Object.assign(ball, {
+    type: curType, state: 'air', u: 0, sx, sz, sy: 0.5, tx, tz,
+    T: curType === 'ball' ? 0.7 + dist * 0.03 : 1.1 + dist * 0.055,
+    apex: curType === 'ball' ? 0.5 + dist * 0.07 : 0.35 + dist * 0.025,
+    curve: curType === 'disc' ? (Math.random() < 0.5 ? -1 : 1) * dist * 0.06 : 0,
+  });
+  ball.dx = (tx - sx) / dist; ball.dz = (tz - sz) / dist; ball.spd = dist / ball.T;
+  dog.state = 'wait'; dog.t = 0; dog.crabDone = false;
+  dog.willCrab = tz > crab.z + 0.8 && Math.random() < 0.8;
+  bark(dog.z);
+  if (!thrown) { thrown = true; setHint(''); }
+}
+function landBall() {
+  if (isWater(ball.x, ball.z)) { toWater(); return; }
+  ball.state = 'ground'; ball.y = 0;
+  if (ball.type === 'ball') { ball.vy = 1.6; ball.vx = ball.dx * ball.spd * 0.25; ball.vz = ball.dz * ball.spd * 0.25; }
+  else { ball.vy = 0; ball.vx = ball.dx * ball.spd * 0.4; ball.vz = ball.dz * ball.spd * 0.4; }
+}
+function toWater() {
+  ball.state = 'water'; ball.y = 0; ball.vy = 0; ball.vx *= 0.3; ball.vz *= 0.3;
+  splashSnd(ball.z); ripples.push({ x: ball.x, z: ball.z, t: 0 });
+  for (let i = 0; i < 10; i++) parts.push({ x: ball.x, z: ball.z, y: 0.02, vx: (Math.random() - 0.5) * 0.8, vz: (Math.random() - 0.5) * 0.8, vy: 1.5 + Math.random() * 1.5 });
+}
+function updateBall(dt) {
+  if (ball.state === 'air') {
+    ball.u += dt / ball.T;
+    const u = Math.min(1, ball.u);
+    ball.x = lerp(ball.sx, ball.tx, u) + ball.curve * Math.sin(Math.PI * u);
+    ball.z = lerp(ball.sz, ball.tz, u);
+    ball.y = ball.sy * (1 - u) + ball.apex * 4 * u * (1 - u);
+    if (ball.u >= 1) landBall();
+  } else if (ball.state === 'ground') {
+    const ox = ball.x, oz = ball.z;
+    if (ball.vy !== 0 || ball.y > 0) {
+      ball.vy -= 9.8 * dt; ball.y += ball.vy * dt;
+      if (ball.y <= 0) { ball.y = 0; if (isWater(ball.x, ball.z)) { toWater(); return; } ball.vy = -ball.vy * 0.45; if (ball.vy < 0.5) ball.vy = 0; }
+    } else { const fr = Math.exp(-6 * dt); ball.vx *= fr; ball.vz *= fr; if (isWater(ball.x, ball.z)) { toWater(); return; } }
+    ball.x += ball.vx * dt; ball.z += ball.vz * dt;
+    if (ball.z > 55 || ball.z < 1.3 || inWall(ball.x, ball.z)) { ball.x = ox; ball.z = oz; ball.vx = ball.vz = 0; }
+  } else if (ball.state === 'water') {
+    const fr = Math.exp(-1.5 * dt); ball.vx *= fr; ball.vz *= fr;
+    ball.x += (ball.vx + Math.sin(time * 0.4) * 0.05) * dt; ball.z += ball.vz * dt;
+    ball.y = Math.sin(time * 2.2) * 0.015;
+    if ((ball.ripT -= dt) < 0) { ball.ripT = 1.3; ripples.push({ x: ball.x, z: ball.z, t: 0 }); }
+    if (!isWater(ball.x, ball.z)) { ball.state = 'ground'; ball.y = 0; ball.vy = 0; }
+  } else if (ball.state === 'held') { ball.x = HELD.x; ball.z = HELD.z; ball.y = 0; }
+}
+
+function pickup() { ball.state = 'carried'; dog.carry = true; dog.state = 'pickup'; dog.t = 0; }
+function catchDisc() { ball.state = 'carried'; dog.carry = true; dog.vy = 2.6; dog.state = 'return'; dog.t = 0; icon('note'); barkSoft(); }
+function arriveHome() {
+  dog.carry = false; ball.state = 'held'; dog.state = 'home'; dog.homeT = 0; dog.face = -1;
+  icon('heart', 1.8); barkSoft();
+}
+function dropBall(dir) {
+  if (!dog.carry) return;
+  dog.carry = false; ball.state = 'ground';
+  ball.x = dog.x + dir * 0.25; ball.z = dog.z + 0.05; ball.y = 0; ball.vx = ball.vz = ball.vy = 0;
+  if (isWater(ball.x, ball.z)) ball.state = 'water';
+}
+function resumeAfterCall() {
+  dog.t = 0;
+  if (dog.prev === 'homesleep') { dog.state = 'home'; dog.homeT = 0; return; }
+  dog.state = dog.carry ? 'return' : (ball.state === 'held' ? 'home' : 'fetch');
+}
+function whistle() {
+  initAudio(); playWhistle();
+  if (['crab', 'nap', 'sleep', 'gullwatch', 'homesleep'].includes(dog.state)) {
+    dog.prev = dog.state; dog.state = 'alert'; dog.t = 0; icon('!', 1);
+    if (dog.prev === 'crab' || dog.prev === 'nap') dog.face = HOME.x > dog.x ? 1 : -1;
+  } else if (dog.state === 'home') icon('?', 1);
+  else icon('note', 1);
+}
+
+function crabPlay(dt) {
+  const dir = dog.side, px = crab.x + dir * 0.55, pz = crab.z + 0.08;
+  if (dog.sub === 'approach') {
+    const r = moveToward(dog, px, pz, 3, dt); dog.moving = true;
+    if (r < 0.02) { dog.sub = 'play'; dog.next = 1.5 + Math.random() * 1.5; dog.hop = 0; dropBall(dir); }
+    return;
+  }
+  dog.distractT += dt; dog.next -= dt; dog.hop = Math.max(0, dog.hop - dt);
+  if (dog.hop <= 0) moveToward(dog, px, pz, 0.4, dt);
+  dog.face = crab.x > dog.x ? 1 : -1;
+  if (dog.next <= 0) {
+    crab.pinch = 0.9; dog.hop = 0.5; dog.vy = 1.8; dog.x += dir * 0.12;
+    bark(dog.z); icon('!', 0.9); dog.next = 2.5 + Math.random() * 3;
+  } else if (!dog.icon && Math.random() < dt * 0.2) icon(Math.random() < 0.5 ? '?' : 'note', 1.2);
+  if (dog.distractT > 28) { dog.state = 'nap'; dog.napZ = dog.z + 1; dog.napX = pathX(dog.napZ) + 0.2; dog.t = 0; }
+}
+
+function updateDog(dt) {
+  dog.anim += dt; dog.t += dt; dog.moving = false;
+  if (dog.y > 0 || dog.vy > 0) { dog.vy -= 9 * dt; dog.y += dog.vy * dt; if (dog.y <= 0) { dog.y = 0; dog.vy = 0; } }
+  if (dog.icon && (dog.icon.t -= dt) <= 0) dog.icon = null;
+  const inW = isWater(dog.x, dog.z);
+  const go = (tx, tz, s = inW ? 0.7 : 1.6) => { const r = moveToward(dog, tx, tz, s, dt); dog.moving = r > 0.005; return r; };
+  switch (dog.state) {
+    case 'home':
+      dog.homeT += dt;
+      if (dog.homeT > 50) { dog.state = 'homesleep'; dog.t = 0; }
+      if (Math.random() < dt * 0.2) dog.face *= -1;
+      break;
+    case 'homesleep': case 'sleep':
+      if (!dog.icon && Math.random() < dt * 0.6) icon('z', 1.4);
+      break;
+    case 'wait': if (dog.t > 0.25) { dog.state = 'chase'; dog.t = 0; } break;
+    case 'chase': {
+      const tgt = ball.state === 'air' ? { x: ball.tx, z: ball.tz } : ball;
+      go(tgt.x, tgt.z);
+      if (ball.state === 'air' && ball.type === 'disc' && ball.u > 0.5 && !inW && ball.y < 0.9 && Math.hypot(dog.x - ball.x, dog.z - ball.z) < 0.55) catchDisc();
+      else if ((ball.state === 'ground' || ball.state === 'water') && Math.hypot(dog.x - ball.x, dog.z - ball.z) < 0.3) pickup();
+      break;
+    }
+    case 'pickup': if (dog.t > 0.4) { dog.state = 'return'; dog.t = 0; } break;
+    case 'fetch':
+      go(ball.x, ball.z);
+      if (Math.hypot(dog.x - ball.x, dog.z - ball.z) < 0.3) pickup();
+      break;
+    case 'return': {
+      const wantCrab = dog.willCrab && !dog.crabDone && dog.z > crab.z + 0.5;
+      if (wantCrab && Math.hypot(dog.x - crab.x, dog.z - crab.z) < 2.2) {
+        dog.state = 'crab'; dog.sub = 'approach'; dog.crabDone = true; dog.t = 0; dog.distractT = 0;
+        dog.side = dog.x >= crab.x ? 1 : -1; icon('!'); break;
+      }
+      const r = wantCrab ? go(crab.x, crab.z) : go(HOME.x, HOME.z);
+      if (!wantCrab && r < 0.02) arriveHome();
+      break;
+    }
+    case 'crab': crabPlay(dt); break;
+    case 'nap': if (go(dog.napX, dog.napZ, 1.6) < 0.02) { dog.state = 'sleep'; dog.t = 0; } break;
+    case 'gullwatch': if (dog.t > 1.8) { dog.state = dog.carry ? 'return' : 'fetch'; dog.t = 0; } break;
+    case 'alert':
+      if (dog.t > 0.8) { if (dog.prev === 'sleep' || dog.prev === 'homesleep') { dog.state = 'wake'; dog.t = 0; } else resumeAfterCall(); }
+      break;
+    case 'wake': if (dog.t > 1.0) resumeAfterCall(); break;
+  }
+  const pp = proj(dog.x, dog.z);
+  if (dog.moving && dog.lsx !== undefined) {
+    const dx = pp.sx - dog.lsx, dy = pp.sy - dog.lsy;
+    if (Math.abs(dx) + Math.abs(dy) > 0.005) {
+      dog.view = Math.abs(dy) > Math.abs(dx) * 0.8 ? (dy > 0 ? 'front' : 'back') : 'side';
+      if (Math.abs(dx) > 0.005) dog.face = dx > 0 ? 1 : -1;
+    }
+  }
+  dog.lsx = pp.sx; dog.lsy = pp.sy;
+  if (inW && dog.moving && (dog.ripT -= dt) < 0) { dog.ripT = 0.35; ripples.push({ x: dog.x, z: dog.z, t: 0 }); }
+}
+
+function updateCrab(dt) {
+  crab.t += dt; crab.pinch = Math.max(0, crab.pinch - dt);
+  const amp = dog.state === 'crab' && dog.sub === 'play' ? 0.06 : 0.18;
+  crab.x = crab.bx + Math.sin(crab.t * 0.6) * amp;
+}
+function takeoff(byDog) {
+  Object.assign(gull, { state: 'off', u: 0, tx: gull.x, tz: gull.z, ox: gull.x + (Math.random() < 0.5 ? -8 : 8), oz: gull.z + 14 });
+  gullCry(gull.z);
+  if (byDog) {
+    bark(dog.z);
+    if (dog.state === 'return') { dog.state = 'gullwatch'; dog.t = 0; dog.face = gull.ox > dog.x ? 1 : -1; icon('!', 1.4); }
+    else icon('!', 1);
+  }
+}
+function updateGull(dt) {
+  const g = gull; g.t += dt;
+  if (g.state === 'sky') {
+    if ((g.wait -= dt) <= 0) {
+      const z = 1.5 + Math.random() * (Z_WATER - 1.7), x = (Math.random() - 0.5) * pathW(z);
+      Object.assign(g, { tx: x, tz: z, fx: x + (Math.random() < 0.5 ? -7 : 7), fz: z + 12, fy: 7, state: 'land', u: 0 });
+    }
+  } else if (g.state === 'land') {
+    g.u += dt / 3.5; const u = Math.min(1, g.u), e = 1 - (1 - u) ** 2;
+    g.x = lerp(g.fx, g.tx, e); g.z = lerp(g.fz, g.tz, e); g.y = lerp(g.fy, 0, u * u * (3 - 2 * u));
+    if (g.u >= 1) { g.state = 'stand'; g.y = 0; g.standT = 25 + Math.random() * 20; gullCry(g.z); }
+  } else if (g.state === 'stand') {
+    g.standT -= dt;
+    if (Math.hypot(dog.x - g.x, dog.z - g.z) < 1.8 && dog.moving) takeoff(true);
+    else if (g.standT <= 0) takeoff(false);
+  } else if (g.state === 'off') {
+    g.u += dt / 3; const u = Math.min(1, g.u);
+    g.x = lerp(g.tx, g.ox, u); g.z = lerp(g.tz, g.oz, u); g.y = lerp(0, 9, u * u);
+    if (u >= 1) { g.state = 'sky'; g.wait = 20 + Math.random() * 25; }
+  }
+}
+
+// ---------- 그리기 ----------
+function drawImg(img, x, z, y, k, footRow, flipX) {
+  const p = proj(x, z, y), w = img.width * k, h = img.height * k;
+  ctx.drawImage(img, p.sx - w / 2, p.sy - footRow * k, w, h);
+}
+function shadow(x, z, r) {
+  const p = proj(x, z, 0), rx = r * p.s;
+  ctx.fillStyle = 'rgba(30,14,28,.32)';
+  ctx.beginPath(); ctx.ellipse(p.sx, p.sy, rx, Math.max(0.6, rx * 0.28), 0, 0, Math.PI * 2); ctx.fill();
+}
+// 새 강아지 그림 (애니메이션풍, 오른쪽을 보는 옆모습 + 앞모습 + 뒷모습)
+const DOG_NAMES = ['side_sit', 'side_stand', 'side_run1', 'side_run2', 'side_bow', 'side_sleep', 'side_swim', 'side_jump', 'front_run1', 'front_run2', 'front_sit', 'front_ball', 'back_run1', 'back_run2', 'back_sit', 'back_stand'];
+const DOGIMG = {};
+DOG_NAMES.forEach(n => { const i = new Image(); i.src = 'dog/' + n + '.png'; DOGIMG[n] = i; });
+const DOG_H = 0.8, DOG_REF = 142; // side_stand 그림 높이(142px)를 강아지 키 0.8로 봄
+// 공을 물었을 때 입 위치 (그림 너비·높이 비율, 오른쪽을 보는 기준)
+const MOUTH2 = { side_run1: [0.93, 0.42], side_run2: [0.95, 0.38], side_stand: [0.95, 0.4], side_jump: [0.86, 0.13], side_bow: [0.95, 0.62], side_swim: [0.97, 0.55], front_run1: [0.5, 0.4], front_run2: [0.5, 0.42], front_sit: [0.5, 0.36] };
+function dogKey() {
+  const run = Math.floor(dog.anim * 7) % 2 ? 2 : 1, sw = isWater(dog.x, dog.z) && dog.y < 0.01;
+  switch (dog.state) {
+    case 'home': return 'front_sit';
+    case 'homesleep': case 'sleep': return 'side_sleep';
+    case 'alert': return 'front_sit';
+    case 'wake': case 'pickup': return 'side_bow';
+    case 'gullwatch': return 'back_sit';
+    case 'crab': if (dog.sub === 'play') return dog.hop > 0 ? 'side_jump' : 'side_bow'; break;
+  }
+  if (sw) return 'side_swim';
+  if (dog.y > 0.05) return 'side_jump';
+  const v = dog.view || 'front';
+  if (dog.moving) return v + '_run' + run;
+  if (dog.carry) return v === 'back' ? 'back_stand' : 'front_ball';
+  return v === 'back' ? 'back_stand' : v === 'front' ? 'front_sit' : 'side_stand';
+}
+function drawToy(type, x, y, s) {
+  if (type === 'ball') {
+    const r = 0.08 * s, g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r);
+    g.addColorStop(0, '#ffa0a0'); g.addColorStop(0.5, '#e23a3a'); g.addColorStop(1, '#9a1f1f');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  } else {
+    const r = 0.16 * s;
+    ctx.fillStyle = '#ffc531'; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.35, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#e09a10'; ctx.lineWidth = Math.max(0.3, r * 0.12); ctx.stroke();
+  }
+}
+function drawDog() {
+  const key = dogKey(), img = DOGIMG[key];
+  if (!img.complete || !img.naturalWidth) return;
+  const p = proj(dog.x, dog.z, dog.y), k = DOG_H * p.s / DOG_REF, w = img.width * k, h = img.height * k;
+  const flip = key.startsWith('side') && dog.face < 0;
+  if (key !== 'side_swim') shadow(dog.x, dog.z, 0.32);
+  const x0 = p.sx - w / 2, y0 = p.sy - h + (key === 'side_swim' ? h * 0.25 : 0);
+  ctx.imageSmoothingEnabled = true;
+  if (flip) { ctx.save(); ctx.translate(p.sx, 0); ctx.scale(-1, 1); ctx.drawImage(img, -w / 2, y0, w, h); ctx.restore(); }
+  else ctx.drawImage(img, x0, y0, w, h);
+  if (dog.carry && MOUTH2[key]) { const [mx, my] = MOUTH2[key]; drawToy(ball.type, x0 + (flip ? 1 - mx : mx) * w, y0 + my * h, p.s); }
+  ctx.imageSmoothingEnabled = false;
+  if (dog.icon) {
+    const ic = ICON[dog.icon.type], ik = clamp(p.s / 40, 1, 3), bob = Math.sin(time * 6) * ik;
+    ctx.drawImage(ic, p.sx - ic.width * ik / 2, y0 - ic.height * ik - 2 + bob, ic.width * ik, ic.height * ik);
+  }
+}
+function drawBall() {
+  if (ball.state === 'carried') return;
+  if (ball.state !== 'water') shadow(ball.x, ball.z, ball.type === 'ball' ? 0.08 : 0.15);
+  const p = proj(ball.x, ball.z, ball.y);
+  drawToy(ball.type, p.sx, p.sy - (ball.state === 'water' ? 0 : (ball.type === 'ball' ? 0.08 : 0.03) * p.s), p.s);
+}
+function drawCrab() {
+  const up = crab.pinch > 0 || Math.sin(crab.t * 1.7) > 0.85;
+  const img = CRAB[up ? 0 : 1], p = proj(crab.x, crab.z), k = 0.16 * p.s / img.height;
+  ctx.drawImage(img, p.sx - img.width * k / 2, p.sy - (img.height - 0.5) * k, img.width * k, img.height * k);
+}
+function drawGull() {
+  const g = gull; if (g.state === 'sky') return;
+  if (g.state === 'stand') {
+    const img = GULL_STAND[(g.tx > dog.x) ? 1 : 0], p = proj(g.x, g.z), k = 0.3 * p.s / img.height;
+    const bob = Math.sin(g.t * 3) > 0.9 ? k : 0;
+    ctx.drawImage(img, p.sx - img.width * k / 2, p.sy - (img.height - 0.5) * k + bob, img.width * k, img.height * k);
+  } else {
+    const img = GULL_FLY[Math.floor(g.t * 5) % 2], p = proj(g.x, g.z, g.y), k = 0.55 * p.s / img.width;
+    ctx.drawImage(img, p.sx - img.width * k / 2, p.sy - img.height * k / 2, img.width * k, img.height * k);
+  }
+}
+function drawFlier(f) {
+  const x = 380 + f.cx * 40 + Math.cos(f.a) * f.r * 10, y = 60 + Math.sin(f.a) * 8 + f.cx * 4;
+  const img = GULL_FLY[Math.floor(time * 4 + f.cx + 10) & 1], k = 0.7;
+  ctx.drawImage(img, x, y, img.width * k, img.height * k);
+}
+
+// ---------- 해가 지는 시간 ----------
+// tod는 0에서 시작해 계속 늘어남. 2를 주기로 노을 → 해 넘어감 → 밤 → 다음 날 노을.
+let tod = 0, todSpeed = 1, lastBgT = 0, sunProg = 0, nightA = 0;
+const TOD_SEC = 90; // 보통 속도에서 tod 1이 지나가는 초
+function updateTod() {
+  const dt = time - lastBgT; lastBgT = time;
+  tod += dt / TOD_SEC * todSpeed;
+  const p = tod % 2;
+  sunProg = p < 1 ? p : 0;
+  nightA = p < 0.55 ? 0 : p < 0.9 ? sst(0.55, 0.9, p) : p < 1.7 ? 1 : 1 - sst(1.7, 2, p);
+}
+function drawBackground() {
+  updateTod();
+  ctx.imageSmoothingEnabled = true;
+  if (!PANO.dusk.complete || !PANO.dusk.naturalWidth) return;
+  ctx.drawImage(duskNoSun || PANO.dusk, 0, 0, W, H);
+  if (duskNoSun) { // 움직이는 해: 수평선 아래로 천천히 내려감
+    const sx = SUN_IMG.x * K, sy = (SUN_IMG.y + sunProg * 60) * K, r = SUN_IMG.r * K, hor = HORIZON_IMG * K;
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, hor); ctx.clip();
+    const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, r * 4);
+    glow.addColorStop(0, `rgba(255,236,180,${0.75 * (1 - sunProg * 0.6)})`); glow.addColorStop(1, 'rgba(255,190,120,0)');
+    ctx.fillStyle = glow; ctx.fillRect(sx - r * 4, sy - r * 4, r * 8, r * 8);
+    ctx.fillStyle = '#fff5d6'; ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+  if (sunProg > 0) { ctx.fillStyle = `rgba(48,24,72,${0.38 * sst(0, 1, sunProg)})`; ctx.fillRect(0, 0, W, H); }
+  if (nightA > 0 && PANO.night.complete && PANO.night.naturalWidth) {
+    ctx.globalAlpha = nightA; ctx.drawImage(PANO.night, 0, 0, W, H); ctx.globalAlpha = 1;
+  }
+}
+// 해변으로 밀려왔다 빠지는 파도
+const SHORE = SHORE_IMG.map(([x, y]) => { const px = x * K, py = y * K, dx = LAGOON_C.x - px, dy = LAGOON_C.y - py, d = Math.hypot(dx, dy); return { x: px, y: py, nx: dx / d, ny: dy / d }; });
+function drawWaves() {
+  const c = mix([255, 255, 255], [120, 240, 255], nightA).map(v => v | 0).join(',');
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (let i = 0; i < 3; i++) {
+    const u = (time * 0.12 + i / 3) % 1, d = (1 - u) * 9, a = Math.sin(Math.PI * u) * (0.45 + 0.35 * nightA);
+    ctx.strokeStyle = `rgba(${c},${a})`; ctx.lineWidth = 0.6 + u * 0.9;
+    ctx.beginPath();
+    SHORE.forEach((p, j) => {
+      const w = Math.sin(time * 1.1 + j * 1.7 + i) * 0.6, x = p.x + p.nx * (d + w), y = p.y + p.ny * (d + w) * 0.6;
+      j ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    });
+    ctx.stroke();
+  }
+  // 모래에 닿은 거품
+  const f = 0.25 + 0.15 * Math.sin(time * 0.75);
+  ctx.strokeStyle = `rgba(${c},${f})`; ctx.lineWidth = 1.4;
+  ctx.beginPath(); SHORE.forEach((p, j) => j ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.stroke();
+}
+// 해(밤에는 달) 아래 바다에 반짝이는 물결
+function drawSparkles() {
+  const col = nightA > 0.5 ? '220,235,255' : '255,240,200', base = 0.35 + 0.65 * Math.max(nightA, 1 - sunProg);
+  for (let i = 0; i < 26; i++) {
+    const seed = Math.floor(time * 2.5 + i * 0.37);
+    const y = (305 + hash(i, seed) * 110) * K, spread = (8 + (y / K - 300) * 0.35) * K, x = SUN_IMG.x * K + (hash(i + 50, seed) * 2 - 1) * spread;
+    ctx.fillStyle = `rgba(${col},${base * (0.4 + 0.6 * hash(i, seed + 3))})`;
+    ctx.fillRect(x, y, 1.2, 0.6);
+  }
+}
+function drawRipples() {
+  ctx.lineWidth = 0.6;
+  for (const r of ripples) {
+    const p = proj(r.x, r.z), rx = (0.1 + r.t * 0.5) * p.s;
+    ctx.strokeStyle = `rgba(220,250,245,${0.6 * (1 - r.t / 1.4)})`;
+    ctx.beginPath(); ctx.ellipse(p.sx, p.sy, rx, Math.max(0.4, rx * 0.3), 0, 0, Math.PI * 2); ctx.stroke();
+  }
+}
+
+// ---------- 모닥불 ----------
+const FIRE = { x: 1150 * K, y: 872 * K, size: 3.2, on: false, lvl: 0 }, embers = [];
+let fireNoiseG = null, firstFire = true;
+function toggleFireOff() { FIRE.on = false; $('bFire').classList.remove('on'); $('bFire').textContent = '불 피우기 (C)'; }
+function toggleFire() {
+  initAudio();
+  if (!FIRE.on && nightA < 0.6) { setHint('모닥불은 밤에만 피울 수 있어요. 해가 지면 다시 해 보세요 (T로 시간 빠르게)', 3000); return; }
+  FIRE.on = !FIRE.on;
+  $('bFire').classList.toggle('on', FIRE.on);
+  $('bFire').textContent = FIRE.on ? '불 끄기 (C)' : '불 피우기 (C)';
+  if (FIRE.on && firstFire) { firstFire = false; setHint('모닥불을 피웠어요. 가만히 바라보세요', 2500); }
+}
+function drawFire(dt) {
+  if (FIRE.on && nightA < 0.3) toggleFireOff(); // 아침이 오면 불이 저절로 꺼짐
+  FIRE.lvl = lerp(FIRE.lvl, FIRE.on ? 1 : 0, 1 - Math.exp(-(FIRE.on ? 0.5 : 1.2) * dt));
+  const x = 0, y = 0, L = FIRE.lvl;
+  ctx.imageSmoothingEnabled = true;
+  ctx.save(); ctx.translate(FIRE.x, FIRE.y); ctx.scale(FIRE.size, FIRE.size); // 화면 앞쪽에 크게
+  if (L > 0.01) { // 주변을 비추는 불빛
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const fl = 0.88 + 0.12 * Math.sin(time * 13) * Math.sin(time * 7.3), R = (55 + 45 * nightA) * L * fl;
+    const g = ctx.createRadialGradient(x, y - 4, 0, x, y - 4, R);
+    g.addColorStop(0, `rgba(255,170,70,${(0.3 + 0.35 * nightA) * L})`); g.addColorStop(1, 'rgba(255,120,40,0)');
+    ctx.fillStyle = g; ctx.fillRect(x - R, y - 4 - R, R * 2, R * 2);
+    ctx.restore();
+  }
+  // 돌과 장작
+  ctx.fillStyle = '#5b5550';
+  for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; ctx.beginPath(); ctx.ellipse(x + Math.cos(a) * 9, y + Math.sin(a) * 2.6, 2.4, 1.5, 0, 0, Math.PI * 2); ctx.fill(); }
+  ctx.strokeStyle = L > 0.3 ? '#3a2214' : '#5a3620'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x - 7, y + 1); ctx.lineTo(x + 5, y - 3); ctx.moveTo(x + 7, y + 1); ctx.lineTo(x - 5, y - 3); ctx.moveTo(x - 6, y - 0.5); ctx.lineTo(x + 6, y - 0.5); ctx.stroke();
+  if (L > 0.02) { // 불꽃
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 7; i++) {
+      const ph = time * (5 + i) + i * 1.7, fx = x + (i - 3) * 1.6 + Math.sin(ph) * 1.2;
+      const fh = (10 + 6 * Math.sin(ph * 0.7 + i) + (3 - Math.abs(i - 3)) * 3) * L, fw = (3.2 - Math.abs(i - 3) * 0.4) * L;
+      const g = ctx.createLinearGradient(fx, y, fx, y - fh);
+      g.addColorStop(0, 'rgba(255,230,140,0.9)'); g.addColorStop(0.4, 'rgba(255,150,40,0.75)'); g.addColorStop(1, 'rgba(220,60,20,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(fx - fw, y - 1);
+      ctx.quadraticCurveTo(fx - fw * 0.8, y - fh * 0.5, fx + Math.sin(ph * 1.3) * 1.5, y - fh);
+      ctx.quadraticCurveTo(fx + fw * 0.8, y - fh * 0.5, fx + fw, y - 1); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+    if (Math.random() < dt * 6 * L) embers.push({ x: x + (Math.random() - 0.5) * 6, y: y - 6, vx: (Math.random() - 0.5) * 4, vy: -10 - Math.random() * 12, t: 0, life: 1.2 + Math.random() * 1.5 });
+  }
+  for (let i = embers.length - 1; i >= 0; i--) { // 올라가는 불티
+    const e = embers[i]; e.t += dt; e.x += (e.vx + Math.sin(time * 3 + i) * 3) * dt; e.y += e.vy * dt;
+    if (e.t > e.life) { embers.splice(i, 1); continue; }
+    ctx.fillStyle = `rgba(255,${(180 - 80 * e.t / e.life) | 0},80,${1 - e.t / e.life})`; ctx.fillRect(e.x, e.y, 0.8, 0.8);
+  }
+  ctx.restore();
+}
+function updateFireSound(dt) {
+  if (!AC) return;
+  if (!fireNoiseG && FIRE.lvl > 0.01) { // 낮게 웅웅거리는 불 소리
+    const n = AC.sampleRate * 3, b = AC.createBuffer(1, n, AC.sampleRate), d = b.getChannelData(0);
+    let last = 0; for (let i = 0; i < n; i++) { last = (last + 0.03 * (Math.random() * 2 - 1)) / 1.03; d[i] = last * 4; }
+    const src = AC.createBufferSource(); src.buffer = b; src.loop = true;
+    const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 400;
+    fireNoiseG = AC.createGain(); fireNoiseG.gain.value = 0;
+    src.connect(f); f.connect(fireNoiseG); fireNoiseG.connect(master); src.start();
+  }
+  if (fireNoiseG) fireNoiseG.gain.value = 0.12 * FIRE.lvl;
+  if (FIRE.lvl > 0.3 && Math.random() < dt * 7 * FIRE.lvl) { // 탁탁 튀는 소리
+    const n = (AC.sampleRate * (0.008 + Math.random() * 0.02)) | 0, b = AC.createBuffer(1, n, AC.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    const s = AC.createBufferSource(); s.buffer = b; const f = AC.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1500 + Math.random() * 2000;
+    const g = AC.createGain(); g.gain.value = 0.04 + Math.random() * 0.1;
+    s.connect(f); f.connect(g); g.connect(master); s.start();
+  }
+}
+
+// ---------- 라디오: 곡 끝과 다음 곡 처음을 4초 겹쳐서 끊김 없이 계속 ----------
+const RADIO_SRCS = ['music/radio1.mp3', 'music/radio2.mp3', 'music/radio3.mp3'];
+let radioOn = false, radioG = null, radioTimer = null, radioI = 0, radioLoading = false;
+const radioBufs = [];
+async function toggleRadio() {
+  initAudio(); if (!AC || radioLoading) return;
+  radioOn = !radioOn; $('bRadio').classList.toggle('on', radioOn); $('bRadio').textContent = radioOn ? '라디오 끄기 (R)' : '라디오 (R)';
+  if (!radioOn) { clearTimeout(radioTimer); if (radioG) { const g = radioG; g.gain.cancelScheduledValues(AC.currentTime); g.gain.setValueAtTime(g.gain.value, AC.currentTime); g.gain.linearRampToValueAtTime(0, AC.currentTime + 2); setTimeout(() => g.disconnect(), 2500); radioG = null; } return; }
+  if (!radioBufs.length) {
+    radioLoading = true; setHint('라디오를 켜는 중이에요…');
+    const got = await Promise.all(RADIO_SRCS.map(async src => { try { const r = await fetch(src); return r.ok ? await AC.decodeAudioData(await r.arrayBuffer()) : null; } catch (e) { return null; } }));
+    radioLoading = false; got.forEach(b => b && radioBufs.push(b));
+    if (!radioBufs.length) { setHint('라디오 음악을 불러오지 못했어요', 2500); radioOn = false; $('bRadio').classList.remove('on'); $('bRadio').textContent = '라디오 (R)'; return; }
+    if (!radioOn) return;
+  }
+  radioG = AC.createGain(); radioG.gain.value = 0; radioG.connect(master); radioG.gain.linearRampToValueAtTime(0.6, AC.currentTime + 3);
+  setHint('잔잔한 라디오를 틀었어요', 2000);
+  playSeg(radioG, AC.currentTime + 0.05);
+}
+function playSeg(out, when) {
+  const XF = 4, buf = radioBufs[radioI++ % radioBufs.length], dur = buf.duration;
+  const s = AC.createBufferSource(), g = AC.createGain(); s.buffer = buf; s.connect(g); g.connect(out);
+  g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(1, when + XF); g.gain.setValueAtTime(1, when + dur - XF); g.gain.linearRampToValueAtTime(0, when + dur);
+  s.start(when); s.stop(when + dur + 0.1);
+  radioTimer = setTimeout(() => { if (radioOn && radioG === out) playSeg(out, when + dur - XF); }, Math.max(0, (when + dur - XF - AC.currentTime - 1.5) * 1000));
+}
+
+// ---------- 그만 쉬기 ----------
+const sessionStart = Date.now();
+let totalBefore = 0;
+try { totalBefore = +localStorage.getItem('healTotal') || 0; } catch (e) {}
+function fmtDur(sec) {
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = Math.floor(sec % 60);
+  return h ? `${h}시간 ${m}분` : m ? `${m}분 ${s}초` : `${s}초`;
+}
+let ended = false;
+function endRest() {
+  if (ended) return; ended = true;
+  const sec = (Date.now() - sessionStart) / 1000;
+  try { localStorage.setItem('healTotal', String(totalBefore + sec)); } catch (e) {}
+  $('endTime').textContent = fmtDur(sec);
+  $('endTotal').textContent = fmtDur(totalBefore + sec);
+  $('end').classList.add('show'); setHint('');
+  if (AC && master) { master.gain.cancelScheduledValues(AC.currentTime); master.gain.setValueAtTime(master.gain.value, AC.currentTime); master.gain.linearRampToValueAtTime(0, AC.currentTime + 4); }
+}
+
+// ---------- 루프 ----------
+let lastT = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now; time += dt; mouseIdle += dt;
+  updateBall(dt); updateDog(dt); updateCrab(dt); updateGull(dt);
+  for (const f of fliers) f.a += f.sp * dt;
+  for (const r of ripples) r.t += dt; while (ripples.length && ripples[0].t > 1.4) ripples.shift();
+  for (const q of parts) { q.vy -= 9 * dt; q.x += q.vx * dt; q.z += q.vz * dt; q.y += q.vy * dt; }
+  for (let i = parts.length - 1; i >= 0; i--) if (parts[i].y < 0) parts.splice(i, 1);
+
+  // 망원경 시점
+  zoom = lerp(zoom, zoomT, 1 - Math.exp(-6 * dt));
+  const PX = (cv.height / H) * BASEZ * zoom; // 기준 좌표 1이 캔버스 몇 픽셀인지
+  const hw = cv.width / 2 / PX, hh = cv.height / 2 / PX;
+  if (zoomT > 1.01 && followDog && time - lastDrag > 3) {
+    const p = proj(dog.x, dog.z, dog.y + 0.4);
+    vx = lerp(vx, p.sx, 1 - Math.exp(-3 * dt)); vy = lerp(vy, p.sy, 1 - Math.exp(-3 * dt));
+  }
+  vx = clamp(vx, hw, W - hw); vy = clamp(vy, hh, H - hh); viewPX = PX;
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.setTransform(PX, 0, 0, PX, cv.width / 2 - vx * PX, cv.height / 2 - vy * PX);
+  drawBackground(); drawWaves(); drawSparkles(); drawRipples(); drawFire(dt); updateFireSound(dt);
+  ctx.imageSmoothingEnabled = false;
+  const ents = [{ z: dog.z, d: drawDog }, { z: ball.z, d: drawBall }, { z: crab.z, d: drawCrab }];
+  if (gull.state !== 'sky') ents.push({ z: gull.z, d: drawGull });
+  for (const f of fliers) ents.push({ z: 999, d: () => drawFlier(f) });
+  for (const q of parts) ents.push({ z: q.z, d: () => { const p = proj(q.x, q.z, q.y), s = Math.max(0.7, 0.03 * p.s); ctx.fillStyle = 'rgba(235,250,250,.9)'; ctx.fillRect(p.sx, p.sy, s, s); } });
+  ents.sort((a, b) => b.z - a.z).forEach(e => e.d());
+
+  if (zoom > 1.03) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const a = clamp((zoom - 1) / 0.6, 0, 1), cx = cv.width / 2, cy = cv.height / 2, R = cv.height * 0.49 + (1 - a) * 700;
+    ctx.fillStyle = `rgba(8,5,10,${0.94 * a})`;
+    ctx.beginPath(); ctx.rect(0, 0, cv.width, cv.height); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill('evenodd');
+    ctx.strokeStyle = `rgba(60,40,30,${a})`; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+  }
+  requestAnimationFrame(frame);
+}
+
+// ---------- 입력 ----------
+const hintEl = document.getElementById('hint');
+let hintTimer = 0;
+function setHint(html, ms) {
+  clearTimeout(hintTimer);
+  if (!html) { hintEl.style.opacity = 0; return; }
+  hintEl.innerHTML = html; hintEl.style.opacity = 1;
+  if (ms) hintTimer = setTimeout(() => hintEl.style.opacity = 0, ms);
+}
+function fit() {
+  const book = document.getElementById('book'), ui = document.getElementById('ui');
+  const used = ui.offsetHeight + (book.classList.contains('open') ? book.offsetHeight + 10 : 0) + 30;
+  const s = Math.min((innerWidth - 32) / cv.width, Math.max(120, innerHeight - used) / cv.height);
+  cv.style.width = cv.width * s + 'px'; cv.style.height = cv.height * s + 'px';
+}
+addEventListener('resize', fit); fit();
+
+// ---------- 책 ----------
+// 우리가 직접 쓴 짧은 글. 한 줄 묶음이 한 장.
+const BOOKS = [
+  { title: '파도가 남기는 것', pages: [
+    '파도는 하루에도 수천 번\n같은 모래 위로 올라왔다가 돌아간다.',
+    '올 때마다 무언가를 조금씩 두고 간다.\n조개껍데기 하나, 반짝이는 물기, 작은 거품.',
+    '그리고 돌아갈 때는\n발자국을 하나씩 데려간다.',
+    '그래서 해변은 늘 처음 같다.\n오늘 걸은 길도, 내일이면 새 길이 된다.',
+  ] },
+  { title: '공을 물고 오는 길', pages: [
+    '공을 던지면 강아지는 뒤도 보지 않고 달려간다.\n세상에 그 공 하나만 있는 것처럼.',
+    '그런데 돌아오는 길은 늘 조금 길다.\n게를 만나고, 갈매기를 쫓고, 웅덩이를 들여다본다.',
+    '처음엔 빨리 오라고 불렀다.\n이제는 그냥 바라본다.',
+    '어쩌면 강아지는 공을 가지러 간 게 아니라\n돌아오는 길을 즐기러 간 건지도 모른다.',
+  ] },
+  { title: '해 질 녘의 편지', pages: [
+    '해가 바다에 닿기 직전,\n하늘은 하루 동안 모은 색을 전부 꺼내 놓는다.',
+    '분홍, 보라, 금빛.\n아무도 주문하지 않았는데 매일 배달되는 편지.',
+    '읽는 방법은 간단하다.\n아무것도 하지 않고, 끝까지 보는 것.',
+    '오늘도 잘 받았습니다.\n내일도 여기 앉아 있을게요.',
+  ] },
+];
+let bookI = 0, pageI = 0, typeT = null;
+const bookEl = document.getElementById('book');
+function showPage() {
+  const b = BOOKS[bookI], txt = b.pages[pageI];
+  $('bookTitle').textContent = `『${b.title}』`;
+  $('bookPage').textContent = `${bookI + 1}편 · ${pageI + 1} / ${b.pages.length}`;
+  $('bookPrev').style.visibility = bookI === 0 && pageI === 0 ? 'hidden' : 'visible';
+  const last = bookI === BOOKS.length - 1 && pageI === b.pages.length - 1;
+  $('bookMore').textContent = last ? '마지막 장이에요' : pageI === b.pages.length - 1 ? '클릭하면 다음 이야기 ▼' : '클릭하면 다음 장 ▼';
+  clearInterval(typeT);
+  let n = 0; $('bookText').textContent = '';
+  typeT = setInterval(() => { n++; $('bookText').textContent = txt.slice(0, n); if (n >= txt.length) { clearInterval(typeT); typeT = null; } }, 45);
+}
+function nextPage() {
+  const b = BOOKS[bookI];
+  if (typeT) { clearInterval(typeT); typeT = null; $('bookText').textContent = b.pages[pageI]; return; } // 글자가 나오는 중이면 한 번에 다 보여주기
+  if (pageI < b.pages.length - 1) pageI++;
+  else if (bookI < BOOKS.length - 1) { bookI++; pageI = 0; }
+  else return;
+  showPage();
+}
+function prevPage() {
+  if (pageI > 0) pageI--;
+  else if (bookI > 0) { bookI--; pageI = BOOKS[bookI].pages.length - 1; }
+  showPage();
+}
+function setBook(open) {
+  bookEl.classList.toggle('open', open);
+  $('bBook').classList.toggle('on', open);
+  $('bBook').textContent = open ? '책 덮기 (B)' : '책 펴기 (B)';
+  if (open) showPage(); else { clearInterval(typeT); typeT = null; }
+  fit();
+}
+bookEl.addEventListener('click', e => { if (e.target.id === 'bookClose') setBook(false); else if (e.target.id === 'bookPrev') prevPage(); else nextPage(); });
+
+function toBase(e) {
+  const r = cv.getBoundingClientRect(), cx = (e.clientX - r.left) / r.width * cv.width, cy = (e.clientY - r.top) / r.height * cv.height;
+  return { x: (cx - cv.width / 2) / viewPX + vx, y: (cy - cv.height / 2) / viewPX + vy };
+}
+cv.addEventListener('contextmenu', e => e.preventDefault());
+cv.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  initAudio();
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+  drag = { x: e.clientX, y: e.clientY, vx, vy, moved: false };
+});
+cv.addEventListener('pointermove', e => {
+  mouseIdle = 0;
+  if (!drag) return;
+  const r = cv.getBoundingClientRect(), sc = cv.width / r.width / viewPX, dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (Math.abs(dx) + Math.abs(dy) > 6) drag.moved = true;
+  if (drag.moved) { vx = drag.vx - dx * sc; vy = drag.vy - dy * sc; lastDrag = time; cv.style.cursor = 'grabbing'; }
+});
+cv.addEventListener('pointerup', e => {
+  if (!drag) return;
+  const d = drag; drag = null; cv.style.cursor = '';
+  if (!d.moved) clickAt(toBase(e));
+});
+function clickAt(b) {
+  if (ball.state !== 'held' || !['home', 'homesleep'].includes(dog.state)) {
+    setHint('강아지가 아직 놀고 있어요. <b>스페이스</b>로 휘파람을 불어 보세요', 2500); return;
+  }
+  let t = unproj(b.x, b.y);
+  if (!t && b.y < ROUTE[ROUTE.length - 1].y) t = { x: 0, z: Z_MAX }; // 하늘이나 먼 바다를 누르면 아주 멀리
+  if (!t || t.z < 0.6) return;
+  throwAt(t.x, t.z);
+}
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (e.deltaY < 0) { const b = toBase(e); vx = lerp(vx, b.x, 0.2); vy = lerp(vy, b.y, 0.2); }
+  zoomT = clamp(zoomT * Math.exp(-e.deltaY * 0.0015), 1, 6);
+}, { passive: false });
+
+const $ = id => document.getElementById(id);
+function setType(t) { curType = t; $('bBall').classList.toggle('on', t === 'ball'); $('bDisc').classList.toggle('on', t === 'disc'); if (ball.state === 'held') ball.type = t; }
+function setFollow(v) { followDog = v; $('bFollow').classList.toggle('on', v); }
+function setMute(v) { muted = v; if (master) master.gain.value = v ? 0 : 0.7; $('bMute').textContent = v ? '소리 꺼짐' : '소리 켜짐'; }
+$('bFire').onclick = toggleFire;
+$('bRadio').onclick = toggleRadio;
+$('bEnd').onclick = endRest;
+$('bAgain').onclick = () => location.reload();
+$('bWork').onclick = () => { $('end').classList.add('done'); window.close(); }; // 브라우저가 창 닫기를 막으면 안내 문구만 남음
+$('bBook').onclick = () => setBook(!bookEl.classList.contains('open'));
+$('bBall').onclick = () => setType('ball');
+$('bDisc').onclick = () => setType('disc');
+$('bWhistle').onclick = whistle;
+$('bZin').onclick = () => { zoomT = clamp(zoomT * 1.6, 1, 6); };
+$('bZout').onclick = () => { zoomT = clamp(zoomT / 1.6, 1, 6); };
+$('bFollow').onclick = () => setFollow(!followDog);
+$('bMute').onclick = () => { initAudio(); setMute(!muted); };
+addEventListener('keydown', e => {
+  if (e.code === 'Space') { e.preventDefault(); whistle(); }
+  else if (e.key === 'c' || e.key === 'C') toggleFire();
+  else if (e.key === 'r' || e.key === 'R') toggleRadio();
+  else if (e.key === 'Escape') endRest();
+  else if (e.key === 'b' || e.key === 'B') setBook(!bookEl.classList.contains('open'));
+  else if (e.key === 'Enter' && bookEl.classList.contains('open')) nextPage();
+  else if (e.key === '1') setType('ball');
+  else if (e.key === '2') setType('disc');
+  else if (e.key === 't' || e.key === 'T') { todSpeed = todSpeed === 1 ? 12 : 1; setHint(todSpeed === 1 ? '시간이 보통 속도로 흘러요' : '시간이 빠르게 흘러요 (T로 되돌리기)', 2000); }
+  else if (e.key === 'f' || e.key === 'F') setFollow(!followDog);
+  else if (e.key === '+' || e.key === '=') zoomT = clamp(zoomT * 1.6, 1, 6);
+  else if (e.key === '-') zoomT = clamp(zoomT / 1.6, 1, 6);
+  else if (e.key === 'm' || e.key === 'M') { initAudio(); setMute(!muted); }
+});
+
+PANO.dusk.onload = prepDusk; if (PANO.dusk.complete && PANO.dusk.naturalWidth) prepDusk();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
