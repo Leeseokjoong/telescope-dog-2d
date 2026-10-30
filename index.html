@@ -36,6 +36,11 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;curso
 body.clean #ui,body.clean #hint{display:none}
 body.clean #showUI{display:block}
 body.clean #wrap{padding:0}
+#start{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,6,16,.45);cursor:pointer;z-index:5;transition:opacity 1.2s}
+#start.hide{opacity:0;pointer-events:none}
+#start div{font-family:"Nanum Myeongjo","Batang","Noto Serif KR",serif;font-size:24px;text-shadow:0 2px 8px rgba(0,0,0,.6);animation:breathe 2.4s ease-in-out infinite;text-align:center;padding:0 16px}
+#start small{display:block;font-family:system-ui,"Malgun Gothic",sans-serif;font-size:13px;opacity:.8;margin-top:10px}
+@keyframes breathe{50%{opacity:.55}}
 </style>
 </head>
 <body>
@@ -65,6 +70,7 @@ body.clean #wrap{padding:0}
 </div>
 </div>
 <button id="showUI">버튼 보이기 (H)</button>
+<div id="start" class="hide"><div id="startText">화면을 누르면 쉬기 시작해요<small>소리와 음악이 함께 나와요</small></div></div>
 <div id="end"><div class="box">
   <p class="q">세상이 빠르게 돌아가도,<br>너는 천천히 둘러보면 돼.</p>
   <p class="t">오늘 쉰 시간 <b id="endTime"></b></p>
@@ -284,6 +290,7 @@ function initAudio() {
   if (AC) return;
   try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
   master = AC.createGain(); master.gain.value = muted ? 0 : 0.7; master.connect(AC.destination);
+  loadSfx();
   const len = AC.sampleRate * 4;
   // 파도 (낮은 웅웅거림이 천천히 밀려왔다 빠짐)
   const buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0);
@@ -311,8 +318,16 @@ function tone(type, f0, f1, dur, vol, delay = 0, filt = 0) {
 }
 const distVol = z => clamp(2.2 / z, 0.06, 1);
 function playWhistle() { tone('sine', 1700, 2500, 0.18, 0.16); tone('sine', 2000, 2700, 0.24, 0.16, 0.24); }
-function bark(z) { const v = 0.32 * distVol(z); tone('sawtooth', 560, 240, 0.11, v, 0, 1500); tone('square', 540, 260, 0.1, v * 0.4, 0, 1200); tone('sawtooth', 600, 250, 0.12, v, 0.17, 1500); }
-function barkSoft() { tone('sine', 900, 1300, 0.12, 0.07); tone('sine', 1000, 1400, 0.1, 0.05, 0.15); }
+// ElevenLabs로 만든 진짜 강아지 소리 (없으면 아래 합성음으로)
+const SFX = {};
+function loadSfx() { for (const n of ['bark', 'whine', 'pant']) fetch(`sfx/${n}.mp3`).then(r => r.arrayBuffer()).then(b => AC.decodeAudioData(b)).then(buf => { SFX[n] = buf; }).catch(() => {}); }
+function playSfx(n, vol, rate = 1) {
+  if (!AC || !SFX[n]) return false;
+  const s = AC.createBufferSource(), g = AC.createGain(); s.buffer = SFX[n]; s.playbackRate.value = rate; g.gain.value = vol;
+  s.connect(g); g.connect(master); s.start(); return true;
+}
+function bark(z) { if (playSfx('bark', 0.9 * distVol(z), 0.92 + Math.random() * 0.16)) return; const v = 0.32 * distVol(z); tone('sawtooth', 560, 240, 0.11, v, 0, 1500); tone('square', 540, 260, 0.1, v * 0.4, 0, 1200); tone('sawtooth', 600, 250, 0.12, v, 0.17, 1500); }
+function barkSoft() { if (playSfx('whine', 0.45, 1.05)) { setTimeout(() => playSfx('pant', 0.4), 900); return; } tone('sine', 900, 1300, 0.12, 0.07); tone('sine', 1000, 1400, 0.1, 0.05, 0.15); }
 function gullCry(z) { const v = 0.06 * distVol(z / 3); for (let i = 0; i < 3; i++) tone('triangle', 1500, 900, 0.16, v, i * 0.22); }
 function splashSnd(z) {
   if (!AC) return;
@@ -619,7 +634,7 @@ const HAND_CUR = [pixelHand(false), pixelHand(true)];
 let petRubAll = 0;
 const petable = () => ['home', 'homesleep', 'pet'].includes(dog.state);
 function overDog(b) { const r = dogRect; return r && b.x > r.x + r.w * 0.12 && b.x < r.x + r.w * 0.88 && b.y > r.y && b.y < r.y + r.h * 0.9; }
-function happyWhine() { tone('sine', 1200, 1500, 0.18, 0.04); tone('sine', 1400, 1100, 0.22, 0.035, 0.2); }
+function happyWhine() { if (playSfx('whine', 0.5, 0.95 + Math.random() * 0.15)) return; tone('sine', 1200, 1500, 0.18, 0.04); tone('sine', 1400, 1100, 0.22, 0.035, 0.2); }
 function petMove(e) {
   const b = toBase(e), over = petable() && overDog(b);
   if (!over) { cv.style.cursor = ''; return; }
@@ -1096,10 +1111,16 @@ addEventListener('keydown', e => {
   else if (e.key === 'm' || e.key === 'M') { initAudio(); setMute(!muted); }
 });
 
-// 브라우저는 한 번 누르기 전엔 소리를 막음 → 첫 클릭·키 입력에 파도 소리와 음악을 함께 켬
-let autoMusic = true;
-function firstSound() { removeEventListener('pointerdown', firstSound, true); removeEventListener('keydown', firstSound, true); initAudio(); if (autoMusic && !radioOn) toggleRadio(); }
-addEventListener('pointerdown', firstSound, true); addEventListener('keydown', firstSound, true);
+// 열리자마자 파도 소리와 음악을 켬. 브라우저가 막으면(한 번도 누르지 않았을 때) 시작 화면을 띄우고 누르는 순간 소리를 냄
+function startSound() {
+  initAudio(); if (!AC) return;
+  if (!radioOn) toggleRadio();
+  const st = $('start');
+  const go = () => { AC.resume(); st.classList.add('hide'); removeEventListener('pointerdown', go, true); removeEventListener('keydown', go, true); };
+  if (LANG === 'en') $('startText').innerHTML = 'Tap anywhere to start resting<small>Sound and music will play</small>';
+  setTimeout(() => { if (AC.state !== 'running') { st.classList.remove('hide'); addEventListener('pointerdown', go, true); addEventListener('keydown', go, true); } }, 300);
+}
+startSound();
 PANO.dusk.onload = prepDusk; if (PANO.dusk.complete && PANO.dusk.naturalWidth) prepDusk();
 requestAnimationFrame(frame);
 </script>
