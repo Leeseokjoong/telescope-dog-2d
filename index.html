@@ -958,55 +958,21 @@ document.addEventListener('fullscreenchange', () => { if (!document.fullscreenEl
 // ---------- 책 ----------
 // 우리가 직접 쓴 짧은 글. 한 줄 묶음이 한 장.
 const BOOKS_KO = [
-  { title: '파도가 남기는 것', pages: [
-    '파도는 하루에도 수천 번\n같은 모래 위로 올라왔다가 돌아간다.',
-    '올 때마다 무언가를 조금씩 두고 간다.\n조개껍데기 하나, 반짝이는 물기, 작은 거품.',
-    '그리고 돌아갈 때는\n발자국을 하나씩 데려간다.',
-    '그래서 해변은 늘 처음 같다.\n오늘 걸은 길도, 내일이면 새 길이 된다.',
-  ] },
-  { title: '공을 물고 오는 길', pages: [
-    '공을 던지면 강아지는 뒤도 보지 않고 달려간다.\n세상에 그 공 하나만 있는 것처럼.',
-    '그런데 돌아오는 길은 늘 조금 길다.\n게를 만나고, 갈매기를 쫓고, 웅덩이를 들여다본다.',
-    '처음엔 빨리 오라고 불렀다.\n이제는 그냥 바라본다.',
-    '어쩌면 강아지는 공을 가지러 간 게 아니라\n돌아오는 길을 즐기러 간 건지도 모른다.',
-  ] },
-  { title: '해 질 녘의 편지', pages: [
-    '해가 바다에 닿기 직전,\n하늘은 하루 동안 모은 색을 전부 꺼내 놓는다.',
-    '분홍, 보라, 금빛.\n아무도 주문하지 않았는데 매일 배달되는 편지.',
-    '읽는 방법은 간단하다.\n아무것도 하지 않고, 끝까지 보는 것.',
-    '오늘도 잘 받았습니다.\n내일도 여기 앉아 있을게요.',
-  ] },
+  { title: '위로의 문장', pages: ["세상이 빠르게 돌아가도,\n너는 천천히 둘러보면 돼.", "모든 것이 괜찮아질 거예요.\n모든 것이, 정말 모든 것이 다 괜찮아질 거예요.\n\n— 노리치의 줄리언, 『하느님 사랑의 계시』", "오늘 아무것도 못 했다고 생각하지 마.\n너는 오늘도 버텼잖아.", "해가 진다고 울고 있으면,\n별도 놓치게 된다.\n\n— 타고르, 『길 잃은 새들』", "잘하지 않아도 돼.\n여기서는 그냥 있어도 돼.", "우리를 겁주는 것은 우리를 다치게 하는 것보다 훨씬 많다.\n우리는 실제보다 마음속에서 더 자주 괴로워한다.\n\n— 세네카, 『루킬리우스에게 보내는 편지』", "울어도 괜찮아.\n파도도 하루 종일 밀려왔다 가는걸.", "희망은 깃털 달린 것,\n영혼에 내려앉아 쉬는 것.\n\n— 에밀리 디킨슨", "강아지는 네가 뭘 이뤘는지 묻지 않아.\n네가 돌아오면, 그냥 좋아해.", "사람은 자기 마음속보다\n더 조용하고 평온한 곳으로 물러날 수 없다.\n\n— 마르쿠스 아우렐리우스, 『명상록』", "해는 매일 지지만, 한 번도 실패한 적이 없어.\n다음 날이면 꼭 다시 떠오르니까.", "나는 느긋하게 기대어,\n여름 풀잎 하나를 바라본다.\n\n— 월트 휘트먼, 『나 자신의 노래』", "쉬는 것도 무언가를 하는 거야.\n아주 중요한 일을.", "시간은 내가 낚시하러 가는\n개울일 뿐이다.\n\n— 헨리 데이비드 소로, 『월든』", "너무 멀리 보지 않아도 돼.\n오늘은 저 파도 하나만 보자.", "영원은\n수많은 지금으로 이루어져 있다.\n\n— 에밀리 디킨슨", "아름다운 것은\n영원한 기쁨이다.\n\n— 존 키츠, 『엔디미온』", "미루는 사이에도 삶은 달려간다.\n그러니 오늘을 붙잡아.\n\n— 세네카, 『루킬리우스에게 보내는 편지』"] },
 ];
 const BOOKS_EN = [
-  { title: 'What the Waves Leave Behind', pages: [
-    'Thousands of times a day, the waves\nclimb the same sand and slip back again.',
-    'Each time, they leave a little something.\nA seashell, a glint of water, a bubble of foam.',
-    'And when they go back,\nthey take one footprint with them.',
-    'That is why the beach always feels new.\nThe path you walked today is a new path tomorrow.',
-  ] },
-  { title: 'The Way Back with the Ball', pages: [
-    'When you throw the ball, the dog runs without looking back,\nas if that ball were the only thing in the world.',
-    'But the way back is always a little longer.\nA crab to meet, a gull to chase, a puddle to peer into.',
-    'At first, I called it to hurry back.\nNow I just watch.',
-    'Maybe the dog does not go to fetch the ball at all.\nMaybe it goes to enjoy the way back.',
-  ] },
-  { title: 'A Letter at Dusk', pages: [
-    'Just before the sun touches the sea,\nthe sky lays out every color it gathered all day.',
-    'Pink, violet, gold.\nA letter no one ordered, delivered every single day.',
-    'Reading it is simple.\nDo nothing, and watch until the very end.',
-    'Received again today, thank you.\nI will be sitting here tomorrow, too.',
-  ] },
+  { title: 'Words of Comfort', pages: ["Even if the world spins fast,\nyou can take your time looking around.", "All shall be well, and all shall be well,\nand all manner of thing shall be well.\n\n— Julian of Norwich, Revelations of Divine Love", "Don't think you did nothing today.\nYou made it through today, didn't you?", "If you shed tears when you miss the sun,\nyou also miss the stars.\n\n— Rabindranath Tagore, Stray Birds", "You don't have to do well.\nHere, it is enough to just be.", "Far more things frighten us than ever hurt us,\nand we suffer more often in our minds than in reality.\n\n— Seneca, Letters to Lucilius", "It's okay to cry.\nEven the waves come and go all day long.", "“Hope” is the thing with feathers –\nThat perches in the soul –\n\n— Emily Dickinson", "Your dog never asks what you achieved.\nIt is just happy that you came back.", "Nowhere can a person find a quieter\nor more untroubled retreat than in their own soul.\n\n— Marcus Aurelius, Meditations", "The sun sets every day, yet it has never once failed.\nIt always rises again the next morning.", "I lean and loafe at my ease\nobserving a spear of summer grass.\n\n— Walt Whitman, Song of Myself", "Resting is doing something, too.\nSomething very important.", "Time is but the stream\nI go a-fishing in.\n\n— Henry David Thoreau, Walden", "You don't have to look so far ahead.\nToday, let's just watch that one wave.", "Forever – is composed of Nows –\n\n— Emily Dickinson", "A thing of beauty is a joy for ever.\n\n— John Keats, Endymion", "While we put things off, life runs on past us.\nSo hold on to today.\n\n— Seneca, Letters to Lucilius"] },
 ];
 const BOOKS = LANG === 'en' ? BOOKS_EN : BOOKS_KO;
-let bookI = 0, pageI = 0, typeT = null;
+let bookI = 0, pageI = Math.floor(Math.random() * BOOKS[0].pages.length), typeT = null;
 const bookEl = document.getElementById('book');
 function showPage() {
   const b = BOOKS[bookI], txt = b.pages[pageI];
   $('bookTitle').textContent = LANG === 'en' ? `“${b.title}”` : `『${b.title}』`;
-  $('bookPage').textContent = LANG === 'en' ? `Story ${bookI + 1} · ${pageI + 1} / ${b.pages.length}` : `${bookI + 1}편 · ${pageI + 1} / ${b.pages.length}`;
+  $('bookPage').textContent = `${pageI + 1} / ${b.pages.length}`;
   $('bookPrev').style.visibility = bookI === 0 && pageI === 0 ? 'hidden' : 'visible';
-  const last = bookI === BOOKS.length - 1 && pageI === b.pages.length - 1;
-  $('bookMore').textContent = last ? T('마지막 장이에요', 'Last page') : pageI === b.pages.length - 1 ? T('클릭하면 다음 이야기 ▼', 'Click for the next story ▼') : T('클릭하면 다음 장 ▼', 'Click for the next page ▼');
+  const last = false;
+  $('bookMore').textContent = last ? T('마지막 장이에요', 'Last page') : pageI === b.pages.length - 1 ? T('클릭하면 다음 문장 ▼', 'Click for the next one ▼') : T('클릭하면 다음 문장 ▼', 'Click for the next one ▼');
   clearInterval(typeT);
   let n = 0; $('bookText').textContent = '';
   typeT = setInterval(() => { n++; $('bookText').textContent = txt.slice(0, n); if (n >= txt.length) { clearInterval(typeT); typeT = null; } }, 45);
@@ -1016,7 +982,7 @@ function nextPage() {
   if (typeT) { clearInterval(typeT); typeT = null; $('bookText').textContent = b.pages[pageI]; return; } // 글자가 나오는 중이면 한 번에 다 보여주기
   if (pageI < b.pages.length - 1) pageI++;
   else if (bookI < BOOKS.length - 1) { bookI++; pageI = 0; }
-  else return;
+  else { bookI = 0; pageI = 0; } // 끝까지 읽으면 처음으로
   showPage();
 }
 function prevPage() {
